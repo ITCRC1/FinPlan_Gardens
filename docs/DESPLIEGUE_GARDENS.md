@@ -68,14 +68,46 @@ trampas:** el intérprete está en `/app/.venv/bin/python` y no en `/proc/1/exe`
 | | |
 |---|---|
 | `HOTEL_ID` | `OJO` — Ojochal Gardens |
+| Áreas que opera | **Rooms, Spa y Tours** (owner, 2026-09-03) |
 | Categorías | **7** activas, 16 unidades |
+| Ingreso 2026 | 397.039,20 — Rooms 374.791,20 · Spa 11.448 · Tours 10.800 |
 | Actuales | ninguno (`actual_entries` = 0) |
 | `FORECAST Working 2026` | corte 0, sin filas de gasto |
 | Reparto de lavandería y cafetería | **sin configurar en los 12 escenarios** |
 | Presupuesto 2026 | arranca en junio |
 
+## ⚠️ El presupuesto llegó con datos de Amarena
+
+El clon trajo el presupuesto de Amarena **entero**: Club Madresal con 145.000 de
+ingreso, 96.644 de gasto y 19 puestos de planilla, más Spa, Tours y A&B.
+
+El owner confirmó el 2026-09-03 que **Ojochal opera Rooms, Spa y Tours**, y que
+el Club es de Amarena. Se sacó el Club —427 filas— y el ingreso pasó de
+547.079,20 a **397.039,20**, exactamente los 150.040 de menos.
+
+**Lo que NO se borró, a propósito: el catálogo.** Las 54 reglas de
+`account_mapping` del departamento 260 y su fila en `department_catalog` se
+quedan. Sin ellas, un movimiento del Club que entre mañana cae por DESCARTE en
+`OPEX_ROOMS`, sin dar error y con el GOP cuadrando — el modo de falla que se
+corrigió en Oxygen ese mismo día. `account_mapping` tiene que seguir en **1.098**
+reglas, igual que en las otras dos propiedades.
+
+⚠️ **La cifra de Rooms también viene del clon.** Nadie confirmó que los
+374.791,20 sean de Ojochal; sólo se confirmó qué áreas opera.
+
 ⚠️ **El reparto no se copió de otra propiedad a propósito.**
 `laundry_allocation_config` guarda `kilos_historicos` —kilos medidos por
-departamento—. Traer los de Amarena dejaría a Gardens repartiendo su lavandería
+departamento—. Traer los de Amarena dejaría a Ojochal repartiendo su lavandería
 con el consumo de otro hotel, y el P&L cuadraría igual sin que nada avise.
 Hoy quedan **9.838,52** sin repartir, parados en `OH_LAUNDRY`.
+
+## ⚠️ Un `rollback` no alcanza como resguardo
+
+`recalculate_scenario` hace su propio `commit`. Un guion «en seco» que borra,
+recalcula y después revierte **ya escribió**: el commit de adentro cierra la
+transacción y el rollback posterior no revierte nada.
+
+Pasó el 2026-09-03 sacando el Club: la corrida de prueba borró de verdad, y se
+llevó las 54 reglas de catálogo que la versión siguiente del guion ya excluía.
+Se restauraron desde Oxygen —son las mismas del grupo—, pero la lección queda:
+**medir el antes y el después, no confiar en el seco.**
