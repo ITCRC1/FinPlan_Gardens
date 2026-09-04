@@ -10,7 +10,7 @@ Identidad del hotel, por entorno. Este repositorio es el despliegue de Ojochal
 Gardens, así que ese es el default —ver `app/hotel_actual.py` para por qué—, pero
 el entorno manda siempre:
 
-    HOTEL_ID=GARDENS HOTEL_NAME="Ojochal Gardens" HOTEL_SHORT_NAME="Ojochal Gardens" HOTEL_ROOMS=<el real> HOTEL_TC_USD=530.0000
+    HOTEL_ID=OJO HOTEL_NAME="Ojochal Gardens" HOTEL_SHORT_NAME="Ojochal Gardens" HOTEL_ROOMS=<el real> HOTEL_TC_USD=530.0000
 
     cd backend && python -m app.seed
 """
@@ -40,7 +40,7 @@ from app.models import Account, PayrollAccount, Scenario, ExchangeRate  # noqa
 # Identidad del hotel de ESTA instalación. Sale del entorno; el default es
 # Ojochal Gardens porque este repositorio es su despliegue — ver
 # `app/hotel_actual.py`, que explica por qué NO es Corcovado ni Amarena.
-HOTEL_ID = os.getenv("HOTEL_ID", "GARDENS")
+HOTEL_ID = os.getenv("HOTEL_ID", "OJO")
 HOTEL_NAME = os.getenv("HOTEL_NAME", "Ojochal Gardens")
 HOTEL_SHORT = os.getenv("HOTEL_SHORT_NAME", "Ojochal Gardens")
 # ⚠️ Default 0, no 30. Un número plausible pero ajeno —las 30 de Corcovado— se

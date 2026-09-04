@@ -5,16 +5,16 @@
  * No hay selector de hotel ni multi-tenant: cada despliegue *es* un hotel, y su
  * identidad sale del entorno.
  *
- *     NEXT_PUBLIC_HOTEL_ID=GARDENS
+ *     NEXT_PUBLIC_HOTEL_ID=OJO
  *
  * Los prefijos del grupo: CWL (Corcovado), AMA (Amarena), OXI (Oxígen),
- * GARDENS (Ojochal Gardens — ESTA instalación). No se validan acá a propósito —
+ * OJO (Ojochal Gardens — ESTA instalación). No se validan acá a propósito —
  * una lista cerrada obligaría a tocar el repo para abrir la quinta propiedad.
  *
  * Tiene que ir con `NEXT_PUBLIC_` porque estas pantallas son componentes de
  * cliente: sin el prefijo, Next no lo expone al navegador y llegaría `undefined`.
  *
- * El default es GARDENS porque este repositorio es el despliegue de Ojochal
+ * El default es OJO porque este repositorio es el despliegue de Ojochal
  * Gardens. Cuando el repo era uno solo para las cuatro propiedades el default
  * tenía que ser CWL, para no moverle el piso a Corcovado; acá esa lógica se
  * invierte. Un `vercel --prod` sin la variable configurada tiene que quedar en
@@ -23,7 +23,7 @@
  * ⚠️ Este clon salió del de Amarena y traía `AMA` acá (corregido el 2026-08-28):
  * un deploy sin la variable habría abierto la app llamándose Amarena.
  */
-export const HOTEL_ID: string = process.env.NEXT_PUBLIC_HOTEL_ID || "GARDENS";
+export const HOTEL_ID: string = process.env.NEXT_PUBLIC_HOTEL_ID || "OJO";
 
 /**
  * ── El NOMBRE se edita en la app, el CÓDIGO no ──────────────────────────────

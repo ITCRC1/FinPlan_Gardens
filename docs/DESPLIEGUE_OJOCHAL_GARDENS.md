@@ -27,13 +27,13 @@
 
 | | Valor |
 |---|---|
-| `HOTEL_ID` | `GARDENS` |
+| `HOTEL_ID` | `OJO` |
 | Nombre | `Ojochal Gardens` |
 | Nombre corto | `Ojochal Gardens` |
 | Base | `finplan_gardens` |
 
 ⚠️ **El roster original del grupo reservaba `OJO`** para Ojochal (junto a `CWL`,
-`AMA` y `OXI`). Esta instalación usa `GARDENS` por decisión del owner. Cabe de
+`AMA` y `OXI`). Esta instalación usa `OJO` por decisión del owner. Cabe de
 sobra en la columna (`hotels.id` es `String(10)`) y el código no valida la lista
 a propósito — pero **el id no se cambia después de provisionar**: es la llave con
 la que quedan estampados escenarios, planilla, tarifas y todo el histórico.
@@ -103,7 +103,7 @@ además vuelve a correr las migraciones.
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | **No arranca** |
 | `SECRET_KEY` | uno nuevo, ver abajo | Firma con una clave pública conocida |
 | `CORS_ORIGINS` | `https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}` | **El navegador bloquea TODO** |
-| `HOTEL_ID` | `GARDENS` | Default `GARDENS` — ya correcto |
+| `HOTEL_ID` | `OJO` | Default `OJO` — ya correcto |
 | `HOTEL_NAME` | `Ojochal Gardens` | Default correcto |
 | `HOTEL_SHORT_NAME` | `Ojochal Gardens` | Default correcto |
 | `HOTEL_ROOMS` | **el real** | Default `0`, y el seed lo avisa |
@@ -136,7 +136,7 @@ El arranque corre solo (`Procfile` / `railway.json`):
 | Variable | Valor |
 |---|---|
 | `NEXT_PUBLIC_API_URL` | `https://${{backend.RAILWAY_PUBLIC_DOMAIN}}/api` |
-| `NEXT_PUBLIC_HOTEL_ID` | `GARDENS` |
+| `NEXT_PUBLIC_HOTEL_ID` | `OJO` |
 | `NEXT_PUBLIC_HOTEL_NAME` | `Ojochal Gardens` |
 | `NEXT_PUBLIC_HOTEL_SHORT_NAME` | `Ojochal Gardens` |
 
@@ -222,7 +222,7 @@ Y en la base:
 
 ```sql
 SELECT id, name, rooms FROM hotels;
--- tiene que decir GARDENS. Si dice CWL o AMA, HOTEL_ID no llegó y hay que
+-- tiene que decir OJO. Si dice CWL o AMA, HOTEL_ID no llegó y hay que
 -- corregirlo ANTES de cargar nada: todo lo que se cargue después cuelga de ese
 -- id.
 

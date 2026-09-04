@@ -5,14 +5,14 @@
 > **Lee este archivo completo antes de escribir cualquier línea de código.**
 > Contiene la arquitectura, fuentes de datos reales, reglas de negocio y convenciones del proyecto.
 
-> ## ⚠️ ESTA INSTALACIÓN ES **OJOCHAL GARDENS** (`GARDENS`) — 2026-08-28
+> ## ⚠️ ESTA INSTALACIÓN ES **OJOCHAL OJO** (`OJO`) — 2026-08-28
 >
 > **Un hotel = un despliegue aparte, con su propia base.** Este repositorio no es
 > el de Corcovado: es un clon dedicado a Ojochal Gardens.
 >
 > | | Valor |
 > |---|---|
-> | `HOTEL_ID` | `GARDENS` |
+> | `HOTEL_ID` | `OJO` |
 > | Nombre | `Ojochal Gardens` |
 > | Base | `finplan_gardens` |
 >
@@ -6681,7 +6681,7 @@ hotel_id   Nombre                          Estado
 CWL        Corcovado Wilderness Lodge      PILOTO
 AMA        Amarena Canvas Beach Hotel      Clon propio
 OXI        Oxígen                          Clon propio
-GARDENS    Ojochal Gardens                 ESTE REPOSITORIO
+OJO    Ojochal Gardens                 ESTE REPOSITORIO
 ```
 
 Plan original, conservado como referencia de hasta dónde se pensaba llegar:
@@ -6874,13 +6874,13 @@ Si varias:        [Corcovado WL v]
     Mis propiedades
     ─────────────────────────────────────
     [x] Corcovado Wilderness Lodge  (CWL)  <- activa
-        Ojochal Gardens             (GARDENS)
+        Ojochal Gardens             (OJO)
         Oxígen                      (OXI)
         Amarena Canvas Beach Hotel  (AMA)
     ─────────────────────────────────────
     Ver todas ->                           <- solo ADMIN
 
-Al cambiar: URL cambia /dashboard/CWL -> /dashboard/GARDENS
+Al cambiar: URL cambia /dashboard/CWL -> /dashboard/OJO
 Todos los datos se recargan para la propiedad seleccionada.
 ```
 
@@ -7099,13 +7099,13 @@ Si varias:        [Corcovado WL v]
     Mis propiedades
     ---------------------------
     [x] Corcovado Wilderness Lodge  (CWL)  <- activa
-        Ojochal Gardens             (GARDENS)
+        Ojochal Gardens             (OJO)
         Oxígen                      (OXI)
         Amarena Canvas Beach Hotel  (AMA)
     ---------------------------
     Ver todas ->                           <- solo ADMIN
 
-Al cambiar de propiedad -> URL cambia /dashboard/CWL -> /dashboard/GARDENS
+Al cambiar de propiedad -> URL cambia /dashboard/CWL -> /dashboard/OJO
 Todos los datos se recargan para la nueva propiedad seleccionada.
 ```
 

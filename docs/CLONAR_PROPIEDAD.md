@@ -1,4 +1,4 @@
-# Abrir una propiedad nueva (AMA, OXI, GARDENS)
+# Abrir una propiedad nueva (AMA, OXI, OJO)
 
 > ## ⚠️ Este repositorio YA es el clon de Ojochal Gardens (2026-08-28)
 >
@@ -15,8 +15,8 @@
 >   clon dejó atrás. La consecuencia real (los arreglos ya no se propagan solos)
 >   está anotada en la guía de despliegue.
 > * La tabla de variables dice que los defaults son los de Corcovado. Acá ya no:
->   son los de Ojochal Gardens (`GARDENS`).
-> * El roster reservaba `OJO` para Ojochal. Esta instalación usa **`GARDENS`**,
+>   son los de Ojochal Gardens (`OJO`).
+> * El roster reservaba `OJO` para Ojochal. Esta instalación usa **`OJO`**,
 >   por decisión del owner.
 
 > Escrito para arrancar en frío. Al 2026-08-14 el código está verificado: **no
@@ -75,7 +75,7 @@ no avisaría: los totales seguirían cuadrando.
 
 Los datos ya vienen estampados con `hotel_id = 'CWL'`, así que entran tal cual.
 
-### AMA, OXI, GARDENS: base vacía y a cargar
+### AMA, OXI, OJO: base vacía y a cargar
 
 Base nueva sin restaurar nada. El arranque siembra las 1.388 filas del motor y
 **nada más**: sin tipos de habitación, sin usuarios, sin paquete. El owner sube
@@ -234,17 +234,17 @@ la que se arma todo el dato) — esos quedan documentados en
 | `CWL` | Corcovado Wilderness Lodge |
 | `AMA` | Amarena Canvas Beach Hotel |
 | `OXI` | Oxígen |
-| `GARDENS` | Ojochal Gardens — **la instalación de este repo** |
+| `OJO` | Ojochal Gardens — **la instalación de este repo** |
 
 ⚠️ El roster original decía `OJO | Ojochal`. Esta instalación quedó como
-`GARDENS` por decisión del owner (2026-08-28).
+`OJO` por decisión del owner (2026-08-28).
 
 **Lo que sí es secreto** — `SECRET_KEY` de cada backend, contraseña del primer
 admin de cada propiedad, y cualquier credencial de Railway/Vercel — va en un
 archivo **aparte, NUNCA en git**: `docs/CREDENTIALS.local.md` (mismo patrón que
 ya usa `C:\DAILY-OPS`). Al día de hoy ese archivo no existe en este repo porque
 **todavía no se abrió ninguna propiedad nueva** — no hay nada real que anotar
-ahí. Se crea recién cuando se hace el primer bootstrap de AMA/OXI/GARDENS, con
+ahí. Se crea recién cuando se hace el primer bootstrap de AMA/OXI/OJO, con
 esta forma:
 
 ```markdown

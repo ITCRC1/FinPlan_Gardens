@@ -67,7 +67,7 @@ trampas:** el intérprete está en `/app/.venv/bin/python` y no en `/proc/1/exe`
 
 | | |
 |---|---|
-| `HOTEL_ID` | `GARDENS` — Ojochal Gardens |
+| `HOTEL_ID` | `OJO` — Ojochal Gardens |
 | Categorías | **7** activas, 16 unidades |
 | Actuales | ninguno (`actual_entries` = 0) |
 | `FORECAST Working 2026` | corte 0, sin filas de gasto |

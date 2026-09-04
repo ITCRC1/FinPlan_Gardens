@@ -5,17 +5,17 @@ propia. No es multi-tenant en una sola base. Por eso la identidad del hotel sale
 del ENTORNO y no de una tabla de hoteles ni de un selector: cada despliegue *es*
 un hotel.
 
-    HOTEL_ID=GARDENS HOTEL_NAME="Ojochal Gardens" …
+    HOTEL_ID=OJO HOTEL_NAME="Ojochal Gardens" …
 
-Los prefijos del grupo (owner, 2026-08-12; `GARDENS` fijado el 2026-08-28):
+Los prefijos del grupo (owner, 2026-08-12; `OJO` fijado el 2026-08-28):
 
     CWL      Corcovado Wilderness Lodge
     AMA      Amarena
     OXI      Oxígen
-    GARDENS  Ojochal Gardens   ← ESTA instalación
+    OJO  Ojochal Gardens   ← ESTA instalación
 
 ⚠️ El roster original reservaba `OJO` para Ojochal; esta instalación usa
-`GARDENS` por decisión del owner. **El id no se cambia después de provisionar**:
+`OJO` por decisión del owner. **El id no se cambia después de provisionar**:
 es la llave con la que quedan estampados escenarios, planilla, tarifas y todo el
 histórico. Cabe de sobra en la columna (`hotels.id` es `String(10)`).
 
@@ -24,7 +24,7 @@ tocar el repo para abrir la quinta propiedad, y el valor ya viene del entorno de
 cada despliegue. Lo mismo que hace `app/seed.py`, que es quien crea la fila del
 hotel al arrancar.
 
-**Por qué el default es `GARDENS` (2026-08-28).** Este repositorio es el
+**Por qué el default es `OJO` (2026-08-28).** Este repositorio es el
 despliegue de Ojochal Gardens. Mientras el repo era uno solo para las cuatro
 propiedades, el default tenía que ser `CWL` para no cambiarle el comportamiento a
 Corcovado. Acá esa lógica se invierte: una variable que no llegó a Railway hacía
@@ -48,7 +48,7 @@ import os
 # ID del hotel de esta instalación. Se lee UNA vez al importar: cambiarlo en
 # caliente no tendría sentido —sería cambiar de hotel a mitad de un request— y
 # leerlo por llamada solo escondería el error.
-HOTEL_ID: str = os.getenv("HOTEL_ID", "GARDENS")
+HOTEL_ID: str = os.getenv("HOTEL_ID", "OJO")
 
 
 def hotel_id() -> str:
@@ -66,7 +66,7 @@ def hotel_id() -> str:
 # variable** — queda anotado en `docs/PLAN_TRABAJO_AUTONOMO.md`.
 HOTEL_NAME: str = os.getenv("HOTEL_NAME", "Ojochal Gardens")
 # Cae a «Ojochal Gardens» y no a `HOTEL_ID`, para que las descargas salgan
-# `Planilla_Ojochal_Gardens.xlsx` y no `Planilla_GARDENS.xlsx`. Mismo default que
+# `Planilla_Ojochal_Gardens.xlsx` y no `Planilla_OJO.xlsx`. Mismo default que
 # `seed.py`.
 HOTEL_SHORT: str = os.getenv("HOTEL_SHORT_NAME", "Ojochal Gardens")
 
