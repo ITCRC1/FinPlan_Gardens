@@ -39,6 +39,10 @@ import IrA from "@/components/IrA";
 import DoceMeses from "./DoceMeses";
 import Formato from "./Formato";
 import Auditoria from "./Auditoria";
+// El Profit by Department del owner, tal como ya está construido bajo Cierre de
+// Mes. Se importa la pantalla entera a propósito: ver el comentario del sub-tab
+// `utilidad` más abajo.
+import PLDetailEnCierre from "../pl-detail/page";
 import DetalleCelda, { type Celda } from "./DetalleCelda";
 import Estadisticas from "./Estadisticas";
 import VistasVisibles from "./VistasVisibles";
@@ -81,6 +85,7 @@ const VISTAS = [
   { key: "opex" },
   { key: "property" },
   { key: "formato" },     // el cuadro tal cual el Excel del cierre
+  { key: "utilidad" },    // Profit by Department: mes · YTD · full year
   // Lo que se abre cuando hace falta mirar más abajo.
   { key: "consulta" },
   { key: "flow" },
@@ -1665,6 +1670,21 @@ export default function MonthEndPLPage() {
         })),
       }];
     },
+    utilidad: async () => {
+      // ⚠️ Utilidad por departamento NO tiene capítulo, y no es un olvido.
+      //
+      // Este sub-tab no arma un cuadro propio: RENDERIZA el P&L Detail que vive
+      // en `app/month-end/pl-detail/`, con sus propios selectores —ámbito
+      // (Consolidado / Hotel / Club), hasta cuatro versiones, y el corte Mes /
+      // YTD / Full Year—. Un capítulo fijo tendría que elegir por el owner qué
+      // ámbito y qué versiones mostrar.
+      //
+      // Y no hace falta: ese reporte tiene su PROPIO Excel, que desde el
+      // 2026-09-07 baja los doce meses de cada versión y abre la utilidad por
+      // departamento en el cuadro de cierre. Es más completo que un capítulo.
+      return [];
+    },
+
     consulta: async () => {
       // ⚠️ Consulta GL NO tiene capítulo, y no es un olvido.
       //
@@ -3235,6 +3255,29 @@ export default function MonthEndPLPage() {
         <Auditoria escenarios={escenarios} inicial={ranuras[0] || undefined}
                    mes={mes} horizonte={horizonte} compacto={compacto} />
       )}
+
+      {/* Profit by Department — mes · YTD · full year.
+       *
+       * Owner, 2026-09-07, entregando `PROFIT BY DEPARTMENT 2025-2026.xlsx`:
+       * *«necesito un formato de profit departamental, ya sea para generar
+       * reportes 12 meses, YTD o por mes. Esto debe ir en cierre de mes como un
+       * sub tab»*.
+       *
+       * ⚠️ **Se RENDERIZA la pantalla que ya existe, no se escribe un cuadro
+       * nuevo.** El formato del owner ya está construido en
+       * `app/month-end/pl-detail/` sobre la cascada `CONSOLIDADO` de
+       * `pl_detail_api.py`: mismos bloques (ingreso, gasto y utilidad por
+       * departamento, overhead, below-GOP), mismos rótulos, el selector Mes /
+       * YTD / Full Year, la comparación entre versiones y la bajada a Excel.
+       * Hasta hoy estaba colgada sólo del menú (`TopNav`), no de esta fila de
+       * sub-tabs.
+       *
+       * Escribir la cascada de nuevo acá sería la TERCERA copia de la misma
+       * plantilla —ya hay dos, `/reports/pl-detail` y ésta, y el encabezado de
+       * ese archivo advierte lo que cuesta— y además se comería el `COH_*` del
+       * overhead, que es el error que ya dejó a Sistemas 937,33 corto.
+       * Ver la nota `finplan-dos-vocabularios-de-linea`. */}
+      {vista === "utilidad" && <PLDetailEnCierre />}
 
       {vista === "consulta" && (
         <div>
