@@ -3229,7 +3229,7 @@ export default function MonthEndPLPage() {
 
       {vista === "auditoria" && (
         <Auditoria escenarios={escenarios} inicial={ranuras[0] || undefined}
-                   mesInicial={mes} compacto={compacto} />
+                   mes={mes} horizonte={horizonte} compacto={compacto} />
       )}
 
       {vista === "consulta" && (
