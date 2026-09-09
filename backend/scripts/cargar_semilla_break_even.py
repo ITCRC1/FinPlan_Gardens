@@ -42,11 +42,19 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 #: Dónde viven las semillas dentro del repo.
 def _carpeta_de_la_propiedad() -> pathlib.Path:
-    """La carpeta de ESTA instalacion. Sin `HOTEL_ID`, la de Corcovado."""
-    import os
-    hotel = os.getenv("HOTEL_ID", "CWL")
+    """La carpeta de ESTA instalacion, la misma que lee `app.seed_break_even`.
+
+    ⚠️ **El default salia de `os.getenv('HOTEL_ID', 'CWL')`, cableado a
+    Corcovado.** En este repositorio la identidad la fija `app/hotel_actual.py`
+    —hoy `OJO`, Ojochal Gardens— y una variable que no llego al entorno hacia
+    que este guion leyera `seed_data/CWL/break_even`: **la semilla de otra
+    propiedad, cargada contra la base de esta, sin dar error**. Es el mismo modo
+    de falla que se corrigio el 2026-08-28 en el backend, el seed y el frontend;
+    faltaba este guion. Ahora hay una sola fuente para el id del hotel.
+    """
+    from app.hotel_actual import HOTEL_ID
     return (pathlib.Path(__file__).resolve().parents[1]
-            / "app" / "seed_data" / hotel / "break_even")
+            / "app" / "seed_data" / HOTEL_ID / "break_even")
 
 
 #: ATENCION (2026-08-20): las semillas se movieron a
