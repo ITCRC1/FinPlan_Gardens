@@ -216,7 +216,7 @@
     "REV_INNOCEANA",
     "REV_CROWTHER_LAB",
     "REV_AREC",
-    "REV_CLARO_HUERTA"
+    "REV_SABOR_OJOCHAL"
    ],
    "operandos": [],
    "formula_nota": "",
@@ -529,8 +529,8 @@
     "OH_LAUNDRY",
     "OH_AREC",
     "COH_AREC",
-    "OH_CLARO_HUERTA",
-    "COH_CLARO_HUERTA"
+    "OPEX_SABOR_OJOCHAL",
+    "COS_SABOR_OJOCHAL"
    ],
    "operandos": [],
    "formula_nota": "",
@@ -1295,7 +1295,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "REV_CLARO_HUERTA",
+   "linea_pl": "REV_SABOR_OJOCHAL",
    "report_code": "REV_OOD_TOTAL",
    "nota": "MEDIA — D3"
   },
@@ -1529,7 +1529,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "COH_CLARO_HUERTA",
+   "linea_pl": "COS_SABOR_OJOCHAL",
    "report_code": "UND_AG",
    "nota": "MEDIA — D3"
   },
@@ -1553,7 +1553,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "OH_CLARO_HUERTA",
+   "linea_pl": "OPEX_SABOR_OJOCHAL",
    "report_code": "UND_AG",
    "nota": "MEDIA — D3"
   },

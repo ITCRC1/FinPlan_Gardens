@@ -323,7 +323,7 @@ async def armar_setup(db: AsyncSession, idioma: str = DEFAULT_LOCALE) -> dict:
     #
     # ⚠️ Y solo cuentan los departamentos VIVOS en los dos años. Sin ese filtro
     # la lista se llena de ruido que no es un problema de setup: el Club (260) y
-    # Claro del Bosque (0205) empiezan en 2027, Innoceana (0155) termina en
+    # Sabor de Ojochal (0205) empiezan en 2027, Innoceana (0155) termina en
     # 2026, y con ellos TODA cuenta de planilla y de gasto «cambiaba de línea».
     # Que un departamento no existiera un año no dice nada sobre el setup de una
     # cuenta; que la cuenta se mude de un departamento que sigue vivo, sí.

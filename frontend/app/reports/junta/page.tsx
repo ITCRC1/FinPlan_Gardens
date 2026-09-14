@@ -48,6 +48,9 @@ const LINEAS_INGRESO = [
   { codes: ["REV_RETAIL"], label: "Gift Shop" },
   { codes: ["REV_INNOCEANA"], label: "Innoceana" },
   { codes: ["REV_LAUNDRY"], label: "Lavandería" },
+  // 0205: operativo desde 2026-09-14. Su gasto salio de LINEAS_GASTO
+  // (era OH_CLARO_HUERTA) porque ya no es overhead.
+  { codes: ["REV_SABOR_OJOCHAL"], label: "Sabor de Ojochal" },
 ];
 
 const LINEAS_GASTO = [
@@ -58,7 +61,6 @@ const LINEAS_GASTO = [
   { code: "OH_UTILITIES", label: "Energéticos" },
   { code: "OH_CAFETERIA", lk: "cafeteriaNet", label: "Cafetería (neto del reparto)" },
   { code: "OH_LAUNDRY", lk: "laundryNet", label: "Lavandería (neto del reparto)" },
-  { code: "OH_CLARO_HUERTA", label: "Claro del Bosque / Huerta" },
   { code: "OH_AREC", label: "Área Recreativa" },
   { code: "OH_EMPLOYEE_BENEFITS", label: "Beneficios a colaboradores" },
 ];

@@ -79,7 +79,7 @@ export const CWL_DEPTS: CwlDept[] = [
   { dept_code: "0190", dept_name: "Sales and Marketing" },
   { dept_code: "0191", dept_name: "Sales & Marketing (remoto)" },
   { dept_code: "0200", dept_name: "Maintenance" },
-  { dept_code: "0205", dept_name: "Claro del Bosque (Huerta)" },
+  { dept_code: "0205", dept_name: "Sabor de Ojochal" },
   { dept_code: "0210", dept_name: "Utilities" },
   { dept_code: "0220", dept_name: "Employee Dining (Cafetería)" },
   { dept_code: "0230", dept_name: "Information System" },

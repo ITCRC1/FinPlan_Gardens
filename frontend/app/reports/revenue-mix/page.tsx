@@ -45,7 +45,7 @@ const REV: [string, string][] = [
   ["REV_LAUNDRY", "Laundry"],
   ["REV_INNOCEANA", "Innoceana"],
   ["REV_CROWTHER_LAB", "Crowther Lab"],
-  ["REV_CLARO_HUERTA", "Claro del Bosque"],
+  ["REV_SABOR_OJOCHAL", "Sabor de Ojochal"],
   ["REV_CLUB", "Club Madresal"],
   ["REV_AREC", "Área Recreativa"],
   ["REV_SUSTAINABILITY", "Sustainability Fee"],

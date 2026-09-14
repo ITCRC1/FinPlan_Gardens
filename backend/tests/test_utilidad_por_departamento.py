@@ -37,7 +37,12 @@ SEED = pathlib.Path(__file__).resolve().parents[1] / "app" / "seed_data" / "mapp
 #
 # CLARO_HUERTA se sumo el 2026-08-14, cuando su ingreso salio de la linea de
 # gasto donde estaba metido (ver `test_la_clase_manda.py`).
-SOLO_INGRESO = {"SUSTAINABILITY", "AREC", "CLARO_HUERTA"}
+# SABOR_OJOCHAL (0205) salió de acá el 2026-09-14. Mientras fue «Claro del
+# Bosque» su utilidad era el ingreso pelado: el gasto vivía en overhead, así que
+# restarlo arriba lo habría contado dos veces. Ahora el departamento es
+# operativo y su gasto está en `OPEX_SABOR_OJOCHAL`, dentro del bloque
+# operativo — la utilidad sí tiene que restarlo.
+SOLO_INGRESO = {"SUSTAINABILITY", "AREC"}
 
 # La línea de gasto de Misceláneos se llama distinto que su grupo. Es la única
 # excepción de nombre y queda anotada acá para que no se vuelva costumbre.

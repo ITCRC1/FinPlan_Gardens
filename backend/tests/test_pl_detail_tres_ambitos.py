@@ -84,8 +84,11 @@ def test_el_hotel_saca_el_club_del_detalle():
 
 
 def test_el_hotel_abre_los_departamentos_de_servicio():
+    # «Claro Huerta» salió de esta lista el 2026-09-14: el 0205 pasó a ser
+    # Sabor de Ojochal, un departamento OPERATIVO, y ya no es de servicio.
+    # Quedan los dos que sí lo son, que son los de reparto.
     hotel = _rotulos(_plantilla_hotel(list(CONSOLIDADO)), "det")
-    for r in ("Claro Huerta", "Cafeteria", "Laundry"):
+    for r in ("Cafeteria", "Laundry"):
         assert r in hotel
     assert "Area Recreativa" not in hotel
 

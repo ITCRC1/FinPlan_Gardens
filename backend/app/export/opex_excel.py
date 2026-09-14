@@ -112,7 +112,7 @@ DEPT_NAMES: dict[str, str] = {
     "0180": "Administration",
     "0190": "Sales & Marketing",
     "0200": "Maintenance",
-    "0205": "Claro del Bosque",
+    "0205": "Sabor de Ojochal",
     "0210": "Utilities",
     "0220": "Employee Dining",
     "0230": "IT",

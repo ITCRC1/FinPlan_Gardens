@@ -45,7 +45,10 @@ DEPT_NAMES = {
     "0183": "Purchasing", "0184": "Recursos Humanos", "0186": "Security",
     "0190": "Sales and Marketing", "0191": "Sales & Marketing (remoto)",
     "0200": "Maintenance", "0230": "Information System",
-    "0205": "Claro del Bosque (Huerta)", "0210": "Utilities",
+    # 0205 = Sabor de Ojochal (owner, 2026-09-14). Era «Claro del Bosque
+    # (Huerta)», un overhead solo-gastos heredado del clon de Corcovado que esta
+    # propiedad nunca operó. Ahora es un centro de utilidad propio.
+    "0205": "Sabor de Ojochal", "0210": "Utilities",
     "0220": "Employee Dining (Cafetería)",
     "260": "Club Madresal", "270": "Área Recreativa", "280": "Miscelaneos",
     # 0250 = el departamento de los gastos de la propiedad (below-GOP, 8xxx).
@@ -63,7 +66,12 @@ DEPT_ALIASES = {
     "0152": ["transport"],
     "0155": ["innocean"], "0156": ["crowther", "crowler"], "0161": ["lavander"],
     "0180": ["administ"], "0190": ["ventas", "mercadeo", "marketing"],
-    "0200": ["mantenim", "maintenance"], "0205": ["claro", "huerta"],
+    # 0205: «sabor» es el alias nuevo. «claro»/«huerta» se QUEDAN a propósito —
+    # los GL ya importados y los archivos históricos dicen «Claro Huerta», y sin
+    # el alias viejo esas filas dejarían de encontrar departamento.
+    # ⚠️ NO agregar «ojochal» a secas: la propiedad entera se llama Ojochal
+    # Gardens y cualquier texto del GL lo contendría.
+    "0200": ["mantenim", "maintenance"], "0205": ["sabor", "claro", "huerta"],
     "0210": ["utility", "utilit"], "0220": ["cafeter", "beneficios"],
     "0230": ["ti", "tecnolog"], "260": ["madresal"], "270": ["recreativa"],
     "280": ["miscel", "sostenib"],
@@ -124,17 +132,14 @@ def build_rows() -> list[dict]:
         "is_revenue_dept": False, "is_allocation_source": False,
         "parent_dept_code": None, "display_order": order, "active": True,
     })
-    # 0205 Claro del Bosque (Huerta): overhead solo-gastos, sin grupo propio →
-    # cae a OTHER_OVERHEAD (consistente con group_for_dept). Promovible a grupo
-    # propio "Property/Grounds" si el owner lo decide.
-    order += 1
-    rows.append({
-        "dept_code": "0205", "dept_name": DEPT_NAMES["0205"],
-        "name_en": "Claro del Bosque (Garden)", "name_aliases": DEPT_ALIASES["0205"],
-        "usali_class": 7, "default_pl_group": "OTHER_OVERHEAD", "pl_kind": "OVERHEAD",
-        "is_revenue_dept": False, "is_allocation_source": False,
-        "parent_dept_code": None, "display_order": order, "active": True,
-    })
+    # ⚠️ El 0205 (Sabor de Ojochal) NO lleva bloque manual acá.
+    #
+    # Tenía uno mientras era overhead solo-gastos sin grupo propio. Desde que es
+    # un grupo operativo (`SABOR_OJOCHAL` en OPERATING_DEPT_GROUPS), el lazo de
+    # arriba ya le arma la fila: grupo propio, pl_kind OPERATING e
+    # is_revenue_dept True. Repetirlo acá abajo generaría DOS entradas para el
+    # mismo dept_code y, como `seed()` recorre la lista en orden y pisa, mandaría
+    # la de más abajo — devolviéndolo a overhead en cada despliegue.
     return rows
 
 

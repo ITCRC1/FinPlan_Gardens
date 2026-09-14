@@ -59,6 +59,15 @@ OPERATING_DEPT_GROUPS: dict[str, list[str]] = {
     "INNOCEANA": ["0155"],
     "CROWTHER":  ["0156"],   # Crowther Lab — cost only, no revenue
     "CLUB":      ["260"],    # Club Madresal — operativo, membresía (Amarena; ambiente común CWL)
+    # Sabor de Ojochal (owner, 2026-09-14): el 0205 pasa de overhead solo-gastos
+    # a centro de utilidad propio — factura y tiene su costo, así que necesita
+    # ingreso, gasto y utilidad separados como cualquier operativo.
+    #
+    # Antes caía al FALLBACK_OVERHEAD_GROUP y sus líneas del reporte
+    # (REV_/OH_/COH_/PROFIT_CLARO_HUERTA) vivían en el JSON sin grupo que las
+    # respaldara: el ingreso se dibujaba arriba y el gasto abajo, en overhead, y
+    # la utilidad salía igual al ingreso porque no le restaba nada.
+    "SABOR_OJOCHAL": ["0205"],
 }
 
 # Overhead departments — subtracted after Operating Profit.
@@ -67,7 +76,8 @@ OVERHEAD_DEPT_GROUPS: dict[str, list[str]] = {
     "SALES":       ["0190", "0191"],
     "MAINTENANCE": ["0200"],
     "IT":          ["0230"],
-    "UTILITIES":   ["0210"],   # 0205 Claro del Bosque (Huerta) → cae a Other Overhead (solo gastos)
+    "UTILITIES":   ["0210"],   # ⚠️ El 0210 y solo el 0210. El 0205 es Sabor de
+                               # Ojochal y es OPERATIVO (ver OPERATING_DEPT_GROUPS).
     "CAFETERIA":   ["0220"],  # allocation source — nets to ~0 after distribution
     "LAUNDRY_OPS": ["0161"],  # Laundry gastos (solo lava) — allocation source, nets to ~0
     # Área Recreativa: CENTRO DE COSTO, no departamento operativo (decisión del
@@ -90,7 +100,7 @@ FALLBACK_OVERHEAD_GROUP = "OTHER_OVERHEAD"
 # Display order
 OPERATING_GROUP_ORDER = [
     "ROOMS", "FB", "PRIVATE_BAR", "SPA", "TOURS", "TIENDA", "RETAIL",
-    "TRANSPORT", "LAUNDRY", "INNOCEANA", "CROWTHER", "CLUB",
+    "TRANSPORT", "LAUNDRY", "INNOCEANA", "CROWTHER", "CLUB", "SABOR_OJOCHAL",
     "AREC", "SUSTAINABILITY", "MISC_OTHER",
 ]
 # Grupos que arriba SOLO traen ingreso: su costo no vive en el bloque operativo.
@@ -108,7 +118,8 @@ GROUP_NAMES = {
     "TIENDA": "Tienda", "RETAIL": "Gift Shop", "TRANSPORT": "Transportation",
     "LAUNDRY": "Laundry", "LAUNDRY_OPS": "Laundry Operations",
     "INNOCEANA": "Innoceana", "CROWTHER": "Crowther Lab",
-    "CLUB": "Club Madresal", "AREC": "Área Recreativa",
+    "CLUB": "Club Madresal", "SABOR_OJOCHAL": "Sabor de Ojochal",
+    "AREC": "Área Recreativa",
     "SUSTAINABILITY": "Sustainability Fee",
     "MISC_OTHER": "Other / Misc Revenue",
     "ADMIN": "Administrations", "SALES": "Sales & Marketing",

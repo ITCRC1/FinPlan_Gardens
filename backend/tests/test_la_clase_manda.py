@@ -85,30 +85,50 @@ def test_el_gasto_de_propiedad_no_se_mete_en_lo_operativo():
     )
 
 
-def test_claro_del_bosque_quedo_como_ingreso():
-    """El caso concreto, para que el arreglo no se deshaga sin que nadie note."""
+def test_sabor_de_ojochal_quedo_como_ingreso():
+    """El caso concreto, para que el arreglo no se deshaga sin que nadie note.
+
+    (El departamento 0205 se llamó «Claro del Bosque (Huerta)» hasta el
+    2026-09-14; las cuentas siguen siendo las mismas cuatro.)
+    """
     por_cuenta = {str(r["account_code"]): r for r in _reglas()
                   if (r.get("dept_code") or "") == "0205"
                   and str(r["account_code"]).startswith("45")}
     assert set(por_cuenta) == {"4500", "4501", "4502", "4503"}
     for cta, r in por_cuenta.items():
-        assert r["report_line_code"] == "REV_CLARO_HUERTA", cta
+        assert r["report_line_code"] == "REV_SABOR_OJOCHAL", cta
         assert r["financial_nature"] == "Revenue", cta
 
 
-def test_la_utilidad_de_claro_del_bosque_no_resta_su_gasto_dos_veces():
-    """⚠️ El 0205 es un departamento de OVERHEAD: su gasto ya se resta en
-    `TOTAL_OVERHEAD_EXPENSES`, y el GOP es `OPERATING_PROFIT − overhead`. Si
-    `PROFIT_CLARO_HUERTA` también restara `OH_CLARO_HUERTA`, ese gasto se
-    contaría dos veces y el GOP bajaría por su monto completo.
+def test_el_gasto_de_sabor_de_ojochal_se_cuenta_una_sola_vez():
+    """⚠️ La regla se INVIRTIÓ el 2026-09-14 y por eso está escrita entera acá.
 
-    Mismo patrón que `PROFIT_SUSTAINABILITY` y `PROFIT_AREC`.
+    Mientras el 0205 fue overhead, su gasto se restaba en
+    `TOTAL_OVERHEAD_EXPENSES` y el GOP era `OPERATING_PROFIT − overhead`: que la
+    utilidad del departamento restara su propio gasto lo habría contado DOS
+    veces. Por eso `PROFIT_CLARO_HUERTA` era el ingreso pelado.
+
+    Ahora el 0205 es OPERATIVO. Su gasto vive en `OPEX_SABOR_OJOCHAL`, dentro
+    del bloque operativo, y ya no pasa por el overhead — así que la utilidad
+    **tiene** que restarlo, y el peligro es el opuesto: que no lo reste y el
+    departamento parezca ganar su venta entera.
+
+    Las dos mitades se vigilan juntas porque son la misma cuenta: el gasto entra
+    una vez y solo una.
     """
     cfg = {r["line_code"]: r for r in
            json.loads(SEED.read_text(encoding="utf-8"))["report_line_config"]}
-    f = cfg["PROFIT_CLARO_HUERTA"]["calculation_logic"].strip()
-    assert f == "REV_CLARO_HUERTA", (
-        f"quedó como «{f}»: si resta el gasto del 0205, se cuenta dos veces")
+
+    f = cfg["PROFIT_SABOR_OJOCHAL"]["calculation_logic"].strip()
+    assert f == "REV_SABOR_OJOCHAL - OPEX_SABOR_OJOCHAL - COS_SABOR_OJOCHAL", (
+        f"quedó como «{f}»: la utilidad del 0205 tiene que restar su gasto")
+
+    # La otra mitad: el gasto NO puede seguir también en el bloque de overhead.
+    assert "OH_SABOR_OJOCHAL" not in cfg and "COH_SABOR_OJOCHAL" not in cfg, (
+        "el 0205 volvió a tener líneas de overhead: su gasto se restaría en el "
+        "bloque operativo Y otra vez debajo del Operating Profit")
+    assert cfg["OPEX_SABOR_OJOCHAL"]["section"] == "OPERATING EXPENSES"
+    assert cfg["COS_SABOR_OJOCHAL"]["section"] == "COST OF SALES"
 
 
 def test_la_naturaleza_declarada_coincide_con_la_clase():

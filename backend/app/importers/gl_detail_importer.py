@@ -171,7 +171,9 @@ _POR_PALABRA: list[tuple[str, str]] = [
     ("transport", "0152"), ("innocean", "0155"), ("crowther", "0156"),
     ("crowler", "0156"), ("lavander", "0161"), ("administ", "0180"),
     ("ventas", "0190"), ("mercadeo", "0190"), ("marketing", "0190"),
-    ("mantenim", "0200"), ("maintenance", "0200"), ("claro", "0205"),
+    ("mantenim", "0200"), ("maintenance", "0200"),
+    # 0205 = Sabor de Ojochal. «claro» se queda para los GL ya cargados.
+    ("sabor", "0205"), ("claro", "0205"),
     ("utility", "0210"), ("utilit", "0210"), ("cafeter", "0220"),
     # Employee Benefits es el 0181, no la Cafeteria. Ademas el 0220 se
     # descarta entero en el camino legacy: el gasto desaparecia.

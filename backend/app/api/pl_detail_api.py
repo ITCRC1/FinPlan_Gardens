@@ -90,6 +90,11 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Madresal Club", ["REV_CLUB"]),
     ("det", "Laundry", ["REV_LAUNDRY"]),
     ("det", "Private Bar", ["REV_PRIVATE_BAR"]),
+    # Sabor de Ojochal (0205). ⚠️ Su ingreso NO tenía renglón acá: la línea
+    # existía en el mapeo (`REV_CLARO_HUERTA`) y entraba a `TOTAL_REVENUES`,
+    # pero no se dibujaba en ninguna fila — el mismo agujero que tuvo la
+    # lavandería en julio 2026.
+    ("det", "Sabor de Ojochal", ["REV_SABOR_OJOCHAL"]),
     ("det", "Miscellaneous  Revenue", ["REV_MISC_OTHER", "REV_SUSTAINABILITY",
                                        "REV_TRANSPORTATION", "REV_INNOCEANA"]),
     ("esp", "", []),
@@ -105,6 +110,7 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Madresal Club", ["OPEX_CLUB", "COS_CLUB"]),
     ("det", "Laundry", ["OPEX_LAUNDRY", "COS_LAUNDRY"]),
     ("det", "Private Bar", ["OPEX_PRIVATE_BAR", "COS_PRIVATE_BAR"]),
+    ("det", "Sabor de Ojochal", ["OPEX_SABOR_OJOCHAL", "COS_SABOR_OJOCHAL"]),
     ("det", "Miscellaneous  Revenue", ["OPEX_MISCELLANEOUS", "OPEX_TRANSPORTATION",
                                        "COS_TRANSPORTATION", "OPEX_INNOCEANA",
                                        "COS_INNOCEANA"]),
@@ -120,6 +126,7 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Madresal Club", ["PROFIT_CLUB"]),
     ("det", "Laundry", ["PROFIT_LAUNDRY"]),
     ("det", "Private Bar", ["PROFIT_PRIVATE_BAR"]),
+    ("det", "Sabor de Ojochal", ["PROFIT_SABOR_OJOCHAL"]),
     ("det", "Miscellaneous  Revenue", ["PROFIT_MISC_OTHER", "PROFIT_SUSTAINABILITY",
                                        "PROFIT_TRANSPORTATION", "PROFIT_INNOCEANA"]),
     ("esp", "", []),
@@ -137,7 +144,8 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Information System", ["OH_INFORMATION_SYSTEM",
                                    "COH_INFORMATION_SYSTEM"]),
     ("det", "Utilities", ["OH_UTILITIES", "COH_UTILITIES"]),
-    ("det", "Claro Huerta", ["OH_CLARO_HUERTA", "COH_CLARO_HUERTA"]),
+    # Sabor de Ojochal (0205) ya NO va acá: desde 2026-09-14 es operativo y sus
+    # renglones están arriba (REVENUES / Operating Expenses / Operating Profit).
     # Los dos departamentos de REPARTO. Su renglón es el SOBRANTE que no
     # alcanzó a repartirse (owner, 2026-08-28: «si tiene saldo que aparezca esa
     # diferencia en overhead»). Faltaban en la plantilla, así que en julio 2026
@@ -185,10 +193,9 @@ CONSOLIDADO: list[tuple] = [
 ]
 
 #: Lo que cambia en la hoja `P&L Detail Hotel`: el Club sale del detalle, y el
-#: overhead lista los tres departamentos de servicio que el consolidado resume.
+#: overhead lista los departamentos de servicio que el consolidado resume.
 HOTEL_QUITA = {"Madresal Club"}
 HOTEL_OVERHEAD = [
-    ("det", "Claro Huerta", ["OH_CLARO_HUERTA"]),
     ("det", "Cafeteria", ["OH_CAFETERIA"]),
     ("det", "Laundry", ["OH_LAUNDRY"]),
 ]
