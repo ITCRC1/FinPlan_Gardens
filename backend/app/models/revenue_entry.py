@@ -22,7 +22,7 @@ REVENUE_LINE_LABELS = {
     "ACTIVITIES": "Tours",
     "TRANSPORT": "Transportation",
     "RETAIL": "Retail",
-    "INNOCEANA": "Innoceana",
+    "INNOCEANA": "Rental #2",
     "LAUNDRY": "Laundry",
     "SUSTAINABILITY": "Sustainability Fee & Misc. Revenue",
     # Las tres fuentes de ingreso del Club Madresal. Los nombres NO son

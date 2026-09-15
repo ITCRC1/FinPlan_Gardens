@@ -152,8 +152,8 @@ const REV_DETALLE: { code: string | null; label: string; nota?: string }[] = [
   { code: "REV_RETAIL", label: "Retail-Gift Shop" },
   { code: "REV_TRANSPORTATION", label: "Transportation" },
   { code: "REV_LAUNDRY", label: "Laundry" },
-  { code: "REV_INNOCEANA", label: "Innoceana" },
-  { code: "REV_CROWTHER_LAB", label: "Crowther Lab" },
+  { code: "REV_RENTAL_2", label: "Rental #2" },
+  { code: "REV_RENTAL_3", label: "Rental #3" },
   { code: "REV_SUSTAINABILITY", label: "Sustainability Fee" },
   { code: "REV_MISC_OTHER", label: "Misc Revenue Others" },
 ];

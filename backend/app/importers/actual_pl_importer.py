@@ -58,8 +58,9 @@ _DEPT_KEYWORDS: list[tuple[str, str]] = [
     ("gift", "0165"),
     ("transport", "0152"),
     ("lavander", "0161"),
-    ("innoceana", "0155"),
-    ("crowther", "0156"),
+    # Alias viejos incluidos a proposito: los archivos ya subidos los dicen.
+    ("rental #2", "0155"), ("innoceana", "0155"),
+    ("rental #3", "0156"), ("crowther", "0156"),
     ("administ", "0180"),
     ("ventas", "0190"),
     ("mercadeo", "0190"),

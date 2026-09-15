@@ -32,7 +32,7 @@ const pct = (v: string | undefined) => (n(v) * 100).toFixed(1) + "%";
 const NOMBRE: Record<string, string> = {
   ROOMS: "Habitaciones", FB: "Alimentos y bebidas", TOURS: "Tours",
   TRANSPORTATION: "Transporte", SPA: "Spa", RETAIL: "Tienda",
-  LAUNDRY: "Lavandería", CLUB: "Club Madresal", INNOCEANA: "Innoceana",
+  LAUNDRY: "Lavandería", CLUB: "Club Madresal", INNOCEANA: "Rental #2",
   SUSTAINABILITY: "Sustainability Fee", MISC_OTHER: "Otros / Misc",
 };
 

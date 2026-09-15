@@ -169,7 +169,8 @@ _POR_PALABRA: list[tuple[str, str]] = [
     # importador mandaba «gift» al 0151 y el del resumen al 0165.
     ("spa", "0140"), ("tours", "0150"), ("gift", "0165"), ("tienda", "0151"),
     ("transport", "0152"), ("innocean", "0155"), ("crowther", "0156"),
-    ("crowler", "0156"), ("lavander", "0161"), ("administ", "0180"),
+    ("crowler", "0156"), ("rental #2", "0155"), ("rental #3", "0156"),
+    ("lavander", "0161"), ("administ", "0180"),
     ("ventas", "0190"), ("mercadeo", "0190"), ("marketing", "0190"),
     ("mantenim", "0200"), ("maintenance", "0200"),
     # 0205 = Sabor de Ojochal. «claro» se queda para los GL ya cargados.

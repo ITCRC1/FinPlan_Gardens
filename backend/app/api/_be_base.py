@@ -353,7 +353,9 @@ def _canonica(line_code: str) -> str:
     Sumar «todo lo que empiece con REV_» los cuenta a los dos. Medido en el
     `ACTUAL 2024`: el ingreso daba $2.120.135 contra $2.055.687 del P&L, y la
     diferencia era **exactamente** los $64.448,17 de Transportation — el mismo
-    monto dos veces. `REV_CROWTHER`/`REV_CROWTHER_LAB` es el otro par.
+    monto dos veces. `REV_CROWTHER`/`REV_CROWTHER_LAB` era el otro par, y
+    dejo de serlo cuando el 0156 paso a llamarse Rental #3 (2026-09-15):
+    los dos vocabularios quedaron con el mismo codigo.
 
     Un error de duplicado que cae justo sobre un departamento entero no se ve
     como duplicado: se ve como un departamento que vendió el doble.

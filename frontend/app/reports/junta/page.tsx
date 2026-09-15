@@ -46,7 +46,7 @@ const LINEAS_INGRESO = [
   { codes: ["REV_SPA"], label: "Spa" },
   { codes: ["REV_TIENDA"], label: "Tienda" },
   { codes: ["REV_RETAIL"], label: "Gift Shop" },
-  { codes: ["REV_INNOCEANA"], label: "Innoceana" },
+  { codes: ["REV_RENTAL_2"], label: "Rental #2" },
   { codes: ["REV_LAUNDRY"], label: "Lavandería" },
   // 0205: operativo desde 2026-09-14. Su gasto salio de LINEAS_GASTO
   // (era OH_CLARO_HUERTA) porque ya no es overhead.

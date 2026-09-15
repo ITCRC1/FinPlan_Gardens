@@ -36,7 +36,7 @@ const NOMBRE: Record<string, string> = {
   TRANSPORTATION: "Transporte",
   LAUNDRY: "Laundry",
   CLUB: "Club",
-  INNOCEANA: "Innoceana",
+  INNOCEANA: "Rental #2",
   SUSTAINABILITY: "Sustainability Fee",
   MISC_OTHER: "Otros",
 };

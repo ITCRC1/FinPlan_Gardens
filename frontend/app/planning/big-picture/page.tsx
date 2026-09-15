@@ -15,8 +15,8 @@ import {
 // Grupo (group_for_dept) → línea de ingreso oficial del Big Picture.
 const REV_CODE_FOR_GROUP: Record<string, string> = {
   ROOMS: "REV_ROOMS", FB: "REV_FB", PRIVATE_BAR: "REV_PRIVATE_BAR", SPA: "REV_SPA", TOURS: "REV_TOURS", TIENDA: "REV_TIENDA", RETAIL: "REV_RETAIL",
-  LAUNDRY_OPS: "REV_LAUNDRY", LAUNDRY: "REV_LAUNDRY", INNOCEANA: "REV_INNOCEANA", CLUB: "REV_CLUB",
-  TRANSPORT: "REV_TRANSPORTATION", CROWTHER: "REV_CROWTHER_LAB", OTHER_OVERHEAD: "REV_MISC_OTHER",
+  LAUNDRY_OPS: "REV_LAUNDRY", LAUNDRY: "REV_LAUNDRY", RENTAL_2: "REV_RENTAL_2", CLUB: "REV_CLUB",
+  TRANSPORT: "REV_TRANSPORTATION", RENTAL_3: "REV_RENTAL_3", OTHER_OVERHEAD: "REV_MISC_OTHER",
   SUSTAINABILITY: "REV_MISC_OTHER",
 };
 
@@ -30,7 +30,7 @@ type Col = Record<string, number>;
  *  cuadrando— y, peor, **los drivers de crecimiento solo se aplican a las
  *  líneas de esta lista**: ese ingreso viajaba PLANO dentro del residual, sin
  *  responder a ningún supuesto del plan. */
-const REV_LIST = [["REV_ROOMS", "Rooms"], ["REV_ROOMS_OTHER", "Other Rooms Revenue"], ["REV_FB", "F&B Food"], ["REV_FB_BEV", "F&B Beverage"], ["REV_FB_MISC", "F&B Miscellaneous"], ["REV_PRIVATE_BAR", "Private Bar"], ["REV_SPA", "Spa"], ["REV_TOURS", "Tours"], ["REV_TIENDA", "Tienda"], ["REV_RETAIL", "Gift Shop"], ["REV_LAUNDRY", "Laundry"], ["REV_INNOCEANA", "Innoceana"], ["REV_CLUB", "Club Madresal"], ["REV_AREC", "Área Recreativa"], ["REV_SABOR_OJOCHAL", "Sabor de Ojochal"], ["REV_TRANSPORTATION", "Transporte"], ["REV_CROWTHER_LAB", "Crowther Lab"], ["REV_SUSTAINABILITY", "Sustainability Fee"], ["REV_MISC_OTHER", "Otros"]] as [string, string][];
+const REV_LIST = [["REV_ROOMS", "Rooms"], ["REV_ROOMS_OTHER", "Other Rooms Revenue"], ["REV_FB", "F&B Food"], ["REV_FB_BEV", "F&B Beverage"], ["REV_FB_MISC", "F&B Miscellaneous"], ["REV_PRIVATE_BAR", "Private Bar"], ["REV_SPA", "Spa"], ["REV_TOURS", "Tours"], ["REV_TIENDA", "Tienda"], ["REV_RETAIL", "Gift Shop"], ["REV_LAUNDRY", "Laundry"], ["REV_RENTAL_2", "Rental #2"], ["REV_CLUB", "Club Madresal"], ["REV_AREC", "Área Recreativa"], ["REV_SABOR_OJOCHAL", "Sabor de Ojochal"], ["REV_TRANSPORTATION", "Transporte"], ["REV_RENTAL_3", "Rental #3"], ["REV_SUSTAINABILITY", "Sustainability Fee"], ["REV_MISC_OTHER", "Otros"]] as [string, string][];
 const NONOP = [["RENT", "Renta"], ["MGMT_FEE_3", "Management Fee · 3% de ingresos"], ["MGMT_FEE_5_ROYALTIES", "Royalties (5%)"], ["PROPERTY_INSURANCE", "Seguros"], ["NONOP_OTHER", "Otros no-operativos"]] as [string, string][];
 const CAPITAL = [["CAP_RESERVE", "Reserva de Capital · 4% de ingresos"], ["CAP_LARGE", "CapEx Mayor · no existe en budget"]] as [string, string][];
 

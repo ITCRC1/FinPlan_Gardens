@@ -87,7 +87,10 @@ def test_no_se_suman_los_dos_vocabularios_de_la_misma_linea():
     Un duplicado que cae justo sobre un departamento entero no se ve como
     duplicado: se ve como un departamento que vendió el doble."""
     assert bb._canonica("REV_TRANSPORT") == "REV_TRANSPORTATION"
-    assert bb._canonica("REV_CROWTHER") == "REV_CROWTHER_LAB"
+    # El par REV_CROWTHER/REV_CROWTHER_LAB se ACABO el 2026-09-15: al
+    # renombrar el grupo a RENTAL_3, el codigo del motor y el del reporte
+    # pasaron a ser el mismo, asi que ya no hay dos vocabularios que sumar.
+    assert bb._canonica("REV_RENTAL_3") == "REV_RENTAL_3"
     # Una canónica se queda como está.
     assert bb._canonica("REV_ROOMS") == "REV_ROOMS"
 

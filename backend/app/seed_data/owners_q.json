@@ -213,8 +213,8 @@
     "REV_TRANSPORTATION",
     "REV_LAUNDRY",
     "REV_CLUB",
-    "REV_INNOCEANA",
-    "REV_CROWTHER_LAB",
+    "REV_RENTAL_2",
+    "REV_RENTAL_3",
     "REV_AREC",
     "REV_SABOR_OJOCHAL"
    ],
@@ -412,10 +412,10 @@
     "COS_LAUNDRY",
     "OPEX_CLUB",
     "COS_CLUB",
-    "OPEX_INNOCEANA",
-    "COS_INNOCEANA",
-    "OPEX_CROWTHER_LAB",
-    "COS_CROWTHER_LAB"
+    "OPEX_RENTAL_2",
+    "COS_RENTAL_2",
+    "OPEX_RENTAL_3",
+    "COS_RENTAL_3"
    ],
    "operandos": [],
    "formula_nota": "",
@@ -1307,13 +1307,13 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "REV_CROWTHER_LAB",
+   "linea_pl": "REV_RENTAL_3",
    "report_code": "REV_OOD_TOTAL",
    "nota": "ALTA"
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "REV_INNOCEANA",
+   "linea_pl": "REV_RENTAL_2",
    "report_code": "REV_OOD_TOTAL",
    "nota": "ALTA"
   },
@@ -1415,13 +1415,13 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "COS_CROWTHER_LAB",
+   "linea_pl": "COS_RENTAL_3",
    "report_code": "EXP_OOD",
    "nota": "ALTA"
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "COS_INNOCEANA",
+   "linea_pl": "COS_RENTAL_2",
    "report_code": "EXP_OOD",
    "nota": "ALTA"
   },
@@ -1469,13 +1469,13 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "OPEX_CROWTHER_LAB",
+   "linea_pl": "OPEX_RENTAL_3",
    "report_code": "EXP_OOD",
    "nota": "ALTA"
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "OPEX_INNOCEANA",
+   "linea_pl": "OPEX_RENTAL_2",
    "report_code": "EXP_OOD",
    "nota": "ALTA"
   },

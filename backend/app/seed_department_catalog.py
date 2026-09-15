@@ -17,7 +17,7 @@ from app.engine.pl_engine import (
 )
 
 ALLOC_SOURCES = {"0220", "0161"}      # cafetería + lavandería gastos
-COST_ONLY_GROUPS = {"CROWTHER"}        # operativo pero sin revenue
+COST_ONLY_GROUPS = {"RENTAL_3"}        # operativo pero sin revenue
 
 # Nombres canónicos por depto (de la BD de planilla normalizada + GROUP_NAMES)
 DEPT_NAMES = {
@@ -33,7 +33,9 @@ DEPT_NAMES = {
     # propósito. El nombre «Tienda / Gift Shop» se leía como si fueran el mismo.
     "0150": "Tour Activities", "0151": "Tienda", "0165": "Gift Shop",
     "0152": "Transportation", "0161": "Laundry Operations", "0162": "Laundry Revenue",
-    "0155": "Innoceana", "0156": "Crowther Lab",
+    # 0155/0156: departamentos de alquiler desde 2026-09-15. Eran
+    # Innoceana y Crowther Lab, heredados del clon de Corcovado.
+    "0155": "Rental #2", "0156": "Rental #3",
     # 0181 = Gerencia, hijo de 0180 (owner, 2026-08-14). Acá decía «Management»
     # y el mapeo decía «Departamento de Beneficios Empleados»: dos verdades para
     # el mismo código. Manda la planilla, que es la que tiene gente — GERENTE
@@ -64,7 +66,9 @@ DEPT_ALIASES = {
     "0110": ["habitaci"], "0120": ["a&b", "alimentos"], "0140": ["spa"],
     "0150": ["tours"], "0151": ["tienda"], "0165": ["gift", "gift shop"],
     "0152": ["transport"],
-    "0155": ["innocean"], "0156": ["crowther", "crowler"], "0161": ["lavander"],
+    "0155": ["rental #2", "rental 2", "innocean"],
+    "0156": ["rental #3", "rental 3", "crowther", "crowler"],
+    "0161": ["lavander"],
     "0180": ["administ"], "0190": ["ventas", "mercadeo", "marketing"],
     # 0205: «sabor» es el alias nuevo. «claro»/«huerta» se QUEDAN a propósito —
     # los GL ya importados y los archivos históricos dicen «Claro Huerta», y sin
