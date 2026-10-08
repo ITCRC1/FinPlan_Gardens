@@ -46,7 +46,7 @@ const REV: [string, string][] = [
   ["REV_RENTAL_2", "Rental #2"],
   ["REV_RENTAL_3", "Rental #3"],
   ["REV_SABOR_OJOCHAL", "Sabor de Ojochal"],
-  ["REV_CLUB", "Club Madresal"],
+  ["REV_CLUB", "Club Ojochal"],
   ["REV_AREC", "Área Recreativa"],
   ["REV_SUSTAINABILITY", "Sustainability Fee"],
   ["REV_MISC_OTHER", "Other / Misc Revenue"],

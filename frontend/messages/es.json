@@ -106,7 +106,7 @@
       "properties": "Propiedades",
       "users": "Usuarios",
       "auditActivity": "Auditoría / actividad",
-      "club": "Club Madresal (membresías)",
+      "club": "Club Ojochal (membresías)",
       "origenes": "Orígenes de datos (QuickBooks, backoffice)",
       "monthEndPL": "P&L del mes (Real · Budget · Reforecast)",
       "statistics": "Estadísticas (clase 9)",
@@ -381,8 +381,8 @@
     "excelHint": "El mismo reporte en .xlsx: una hoja por departamento, el cuadre adelante.",
     "profit": "Utilidad",
     "totalYear": "Total Año",
-    "clubTitle": "Club Madresal — socios",
-    "clubHint": "El Club vende acceso a las instalaciones. La cuota está en los ingresos del departamento; esto explica de dónde sale.",
+    "clubTitle": "Club Ojochal — socios",
+    "clubHint": "Club Ojochal vende acceso a las instalaciones. La cuota está en los ingresos del departamento; esto explica de dónde sale.",
     "clubTotalNote": "El total del año es el saldo de diciembre, no la suma de los doce meses: son socios, no ingresos.",
     "clubNoData": "Sin socios cargados en este escenario.",
     "concept": "Concepto",
@@ -2545,8 +2545,8 @@
     "xlsSubtitle": "Pax = Noches ocupadas × {factor} por noche"
   },
   "clubStats": {
-    "title": "Club Madresal — socios",
-    "hint": "El Club vende acceso a las instalaciones del hotel. La cuota de acceso ya está en los ingresos del departamento; este conteo explica de dónde sale. No entra en ninguna línea del P&L.",
+    "title": "Club Ojochal — socios",
+    "hint": "Club Ojochal vende acceso a las instalaciones del hotel. La cuota de acceso ya está en los ingresos del departamento; este conteo explica de dónde sale. No entra en ninguna línea del P&L.",
     "totalNote": "El total del año es el saldo de diciembre, no la suma: son socios, no ingresos.",
     "save": "Guardar socios",
     "saved": "✓ Socios guardados.",
@@ -2554,9 +2554,9 @@
     "yearTotal": "Total Año"
   },
   "club": {
-    "title": "Club Madresal",
-    "intro": "El Club vende acceso a las instalaciones del hotel; el desarrollo inmobiliario que hay detrás no es parte de este P&L. Tiene tres fuentes de ingreso, una por cuenta: la cuota sale sola (socios × precio del mes) y las otras dos se digitan. Las tres suman en la misma línea del P&L.",
-    "notEnabled": "El Club Madresal no está habilitado en esta propiedad. Se prende en Master Data → Provisionamiento, en el departamento 260.",
+    "title": "Club Ojochal",
+    "intro": "Club Ojochal vende acceso a las instalaciones del hotel; el desarrollo inmobiliario que hay detrás no es parte de este P&L. Tiene tres fuentes de ingreso, una por cuenta: la cuota sale sola (socios × precio del mes) y las otras dos se digitan. Las tres suman en la misma línea del P&L.",
+    "notEnabled": "Club Ojochal no está habilitado en esta propiedad. Se prende en Master Data → Provisionamiento, en el departamento 260.",
     "feeTitle": "Cuota e ingresos del Club",
     "base": "Socios que pagan:",
     "baseHint": "Qué conteo multiplica la cuota. Por defecto los que están pagando: los condicionados, por definición, todavía no pagan.",

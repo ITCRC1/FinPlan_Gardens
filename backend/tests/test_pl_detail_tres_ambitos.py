@@ -79,8 +79,8 @@ def test_los_rotulos_conservan_las_erratas_del_owner():
 
 def test_el_hotel_saca_el_club_del_detalle():
     hotel = _plantilla_hotel(list(CONSOLIDADO))
-    assert "Madresal Club" not in _rotulos(hotel, "det")
-    assert "Madresal Club" in _rotulos(CONSOLIDADO, "det")
+    assert "Club Ojochal" not in _rotulos(hotel, "det")
+    assert "Club Ojochal" in _rotulos(CONSOLIDADO, "det")
 
 
 def test_el_hotel_abre_los_departamentos_de_servicio():

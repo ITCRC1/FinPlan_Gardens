@@ -154,11 +154,11 @@ export default function ClubPage() {
       { label: t("clubRevenue"), es_total: true, valores: [...meses.map(m => ingreso(m)), total] },
     ];
     try {
-      await bajarCuadros("Club_Madresal", [{
+      await bajarCuadros("Club_Ojochal", [{
         titulo: t("title"),
         subtitulo: [scenarios.find(s => s.id === scenarioId)?.year ? scnLabel(scenarios.find(s => s.id === scenarioId)!) : "",
           fee.etiquetas_base[base] ?? base].filter(Boolean).join(" · "),
-        hoja: "Club Madresal",
+        hoja: "Club Ojochal",
         columnas: [
           { label: tc("concept"), ancho: 34, formato: "texto" },
           ...MESES.map(m => ({ label: m, ancho: 12, formato: "usd" as const })),

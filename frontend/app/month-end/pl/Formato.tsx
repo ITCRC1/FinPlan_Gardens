@@ -67,7 +67,7 @@ const SEL: React.CSSProperties = {
 const AMBITOS = [
   { id: "consolidado", rotulo: "Consolidado" },
   { id: "hotel", rotulo: "Hotel" },
-  { id: "club", rotulo: "Club Madresal" },
+  { id: "club", rotulo: "Club Ojochal" },
 ];
 
 /** El escenario con el que abrir, para un papel.

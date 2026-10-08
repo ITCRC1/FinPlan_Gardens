@@ -155,7 +155,7 @@ def test_el_checkbook_ahora_tiene_linea_de_club():
     assert "CLUB" in REVENUE_LINES
     # El rótulo es el del catálogo (cuenta 4500 del depto 260), no uno inventado
     # acá; `test_club_tres_lineas_de_ingreso.py` lo compara contra el mapeo.
-    assert REVENUE_LINE_LABELS["CLUB"] == "Ingreso Madresal Club"
+    assert REVENUE_LINE_LABELS["CLUB"] == "Ingreso Club Ojochal"
 
 
 def test_el_motor_de_ingresos_lleva_el_club_hasta_el_pl():

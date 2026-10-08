@@ -86,7 +86,7 @@ NOMBRE_DEPTO = {
     "REV_SUSTAINABILITY": "Sustainability Fee",
     "REV_TIENDA": "Tienda",
     "REV_PRIVATE_BAR": "Private Bar",
-    "REV_CLUB": "Club Madresal",
+    "REV_CLUB": "Club Ojochal",
     "REV_AREC": "Área Recreativa",
     "REV_RENTAL_2": "Rental #2",
     "REV_RENTAL_3": "Rental #3",

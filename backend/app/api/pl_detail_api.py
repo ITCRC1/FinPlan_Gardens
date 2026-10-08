@@ -87,7 +87,7 @@ CONSOLIDADO: list[tuple] = [
     ("det", "SPA", ["REV_SPA"]),
     ("det", "Tours", ["REV_TOURS"]),
     ("det", "Retail-Gift Shop", ["REV_RETAIL", "REV_TIENDA"]),
-    ("det", "Madresal Club", ["REV_CLUB"]),
+    ("det", "Club Ojochal", ["REV_CLUB"]),
     ("det", "Laundry", ["REV_LAUNDRY"]),
     ("det", "Private Bar", ["REV_PRIVATE_BAR"]),
     # Sabor de Ojochal (0205). ⚠️ Su ingreso NO tenía renglón acá: la línea
@@ -107,7 +107,7 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Tours", ["OPEX_TOURS", "COS_TOURS"]),
     ("det", "Retail-Gift Shop", ["OPEX_RETAIL", "COS_RETAIL",
                                  "OPEX_TIENDA", "COS_TIENDA"]),
-    ("det", "Madresal Club", ["OPEX_CLUB", "COS_CLUB"]),
+    ("det", "Club Ojochal", ["OPEX_CLUB", "COS_CLUB"]),
     ("det", "Laundry", ["OPEX_LAUNDRY", "COS_LAUNDRY"]),
     ("det", "Private Bar", ["OPEX_PRIVATE_BAR", "COS_PRIVATE_BAR"]),
     ("det", "Sabor de Ojochal", ["OPEX_SABOR_OJOCHAL", "COS_SABOR_OJOCHAL"]),
@@ -123,7 +123,7 @@ CONSOLIDADO: list[tuple] = [
     ("det", "SPA", ["PROFIT_SPA"]),
     ("det", "Tours", ["PROFIT_TOURS"]),
     ("det", "Retail-Gift Shop", ["PROFIT_RETAIL", "PROFIT_TIENDA"]),
-    ("det", "Madresal Club", ["PROFIT_CLUB"]),
+    ("det", "Club Ojochal", ["PROFIT_CLUB"]),
     ("det", "Laundry", ["PROFIT_LAUNDRY"]),
     ("det", "Private Bar", ["PROFIT_PRIVATE_BAR"]),
     ("det", "Sabor de Ojochal", ["PROFIT_SABOR_OJOCHAL"]),
@@ -194,7 +194,7 @@ CONSOLIDADO: list[tuple] = [
 
 #: Lo que cambia en la hoja `P&L Detail Hotel`: el Club sale del detalle, y el
 #: overhead lista los departamentos de servicio que el consolidado resume.
-HOTEL_QUITA = {"Madresal Club"}
+HOTEL_QUITA = {"Club Ojochal"}
 HOTEL_OVERHEAD = [
     ("det", "Cafeteria", ["OH_CAFETERIA"]),
     ("det", "Laundry", ["OH_LAUNDRY"]),
@@ -346,11 +346,11 @@ CLASES_ROTULOS = [("payroll", "Total Payroll and Benefits"),
                   ("opex", "Total Operating Expenses"),
                   ("cost", "Total Cost"),
                   ("property", "Total Property Expenses")]
-_NOTA_AMBITO = {"consolidado": "Hotel + Club Madresal",
-                "hotel": "Sin el Club Madresal",
+_NOTA_AMBITO = {"consolidado": "Hotel + Club Ojochal",
+                "hotel": "Sin el Club Ojochal",
                 "club": "Solo el departamento 260"}
 _TITULO_AMBITO = {"consolidado": "Consolidado", "hotel": "Hotel",
-                  "club": "Club Madresal"}
+                  "club": "Club Ojochal"}
 
 
 @router.get("/reports/pl-detail/{ambito}/excel/")

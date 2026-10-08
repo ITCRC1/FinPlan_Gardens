@@ -120,7 +120,7 @@ GROUP_NAMES = {
     "TIENDA": "Tienda", "RETAIL": "Gift Shop", "TRANSPORT": "Transportation",
     "LAUNDRY": "Laundry", "LAUNDRY_OPS": "Laundry Operations",
     "RENTAL_2": "Rental #2", "RENTAL_3": "Rental #3",
-    "CLUB": "Club Madresal", "SABOR_OJOCHAL": "Sabor de Ojochal",
+    "CLUB": "Club Ojochal", "SABOR_OJOCHAL": "Sabor de Ojochal",
     "AREC": "Área Recreativa",
     "SUSTAINABILITY": "Sustainability Fee",
     "MISC_OTHER": "Other / Misc Revenue",

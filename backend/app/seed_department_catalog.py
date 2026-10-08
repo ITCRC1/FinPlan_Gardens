@@ -52,7 +52,7 @@ DEPT_NAMES = {
     # propiedad nunca operó. Ahora es un centro de utilidad propio.
     "0205": "Sabor de Ojochal", "0210": "Utilities",
     "0220": "Employee Dining (Cafetería)",
-    "260": "Club Madresal", "270": "Área Recreativa", "280": "Miscelaneos",
+    "260": "Club Ojochal", "270": "Área Recreativa", "280": "Miscelaneos",
     # 0250 = el departamento de los gastos de la propiedad (below-GOP, 8xxx).
     # Existía solo como texto en el mapeo y no tenía fila acá, así que la
     # plantilla y los tabs lo mostraban como un código pelado.
@@ -77,7 +77,7 @@ DEPT_ALIASES = {
     # Gardens y cualquier texto del GL lo contendría.
     "0200": ["mantenim", "maintenance"], "0205": ["sabor", "claro", "huerta"],
     "0210": ["utility", "utilit"], "0220": ["cafeter", "beneficios"],
-    "0230": ["ti", "tecnolog"], "260": ["madresal"], "270": ["recreativa"],
+    "0230": ["ti", "tecnolog"], "260": ["club ojochal", "madresal"], "270": ["recreativa"],
     "280": ["miscel", "sostenib"],
     "0250": ["property", "propiedad"],   # mismos que gl_detail_importer
 }

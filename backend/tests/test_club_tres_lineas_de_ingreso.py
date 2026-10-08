@@ -18,7 +18,7 @@ import os
 from app.models.revenue_entry import (
     REVENUE_LINE_ACCOUNT, REVENUE_LINE_LABELS, REVENUE_LINES)
 
-DEPTO_CLUB_EN_EL_MAPEO = "Departamento de Club Madresal"
+DEPTO_CLUB_EN_EL_MAPEO = "Departamento de Club Ojochal"
 LINEAS = ("CLUB", "CLUB_ACTIVIDAD", "CLUB_VISITANTES")
 
 

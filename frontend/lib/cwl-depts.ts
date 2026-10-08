@@ -83,7 +83,7 @@ export const CWL_DEPTS: CwlDept[] = [
   { dept_code: "0210", dept_name: "Utilities" },
   { dept_code: "0220", dept_name: "Employee Dining (Cafetería)" },
   { dept_code: "0230", dept_name: "Information System" },
-  { dept_code: "260",  dept_name: "Club Madresal" },
+  { dept_code: "260",  dept_name: "Club Ojochal" },
   { dept_code: "270",  dept_name: "Área Recreativa" },
   { dept_code: "280",  dept_name: "Miscelaneos" },
 ];

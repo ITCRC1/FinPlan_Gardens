@@ -348,7 +348,7 @@ export const DEPARTAMENTOS = [
   { key: "RENTAL_2", label: "Rental #2" },
   { key: "LAUNDRY", label: "Lavandería" },
   { key: "SUSTAINABILITY", label: "Sustainability Fee" },
-  { key: "CLUB", label: "Club Madresal" },
+  { key: "CLUB", label: "Club Ojochal" },
 ];
 
 /** Flow Through = cuánto de cada dólar ADICIONAL de ingreso llega al resultado.

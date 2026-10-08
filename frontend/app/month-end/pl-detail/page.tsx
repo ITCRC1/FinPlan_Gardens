@@ -47,9 +47,9 @@ import { bajarPLDetailExcel } from "@/lib/api";
 import Cierre from "./Cierre";
 
 const AMBITOS = [
-  { id: "consolidado", rotulo: "Consolidado", ayuda: "Hotel + Club Madresal" },
-  { id: "hotel", rotulo: "Hotel", ayuda: "Sin el Club Madresal" },
-  { id: "club", rotulo: "Club Madresal", ayuda: "Sólo el departamento 260" },
+  { id: "consolidado", rotulo: "Consolidado", ayuda: "Hotel + Club Ojochal" },
+  { id: "hotel", rotulo: "Hotel", ayuda: "Sin el Club Ojochal" },
+  { id: "club", rotulo: "Club Ojochal", ayuda: "Sólo el departamento 260" },
 ] as const;
 
 const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",

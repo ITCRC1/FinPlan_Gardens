@@ -28,7 +28,7 @@ REVENUE_LINE_LABELS = {
     # Las tres fuentes de ingreso del Club Madresal. Los nombres NO son
     # invención: son los de `account_mapping` (depto 260) y hay una prueba que
     # falla si se separan del catálogo.
-    "CLUB": "Ingreso Madresal Club",
+    "CLUB": "Ingreso Club Ojochal",
     "CLUB_ACTIVIDAD": "Actividad fin de año",
     "CLUB_VISITANTES": "Visitantes",
 }

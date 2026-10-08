@@ -96,8 +96,20 @@ def test_la_semilla_obliga_a_declarar_el_destino():
         assert not faltan, f"{archivo.parent.name}: sin `rueda_a` en la semilla: {faltan}"
         # Y el mapeo tiene que ser el mismo que resolvía el diccionario, para que
         # la migración no haya movido un número.
+        #
+        # ⚠️ MENOS estos dos. Owner, 2026-10-06: «me gustaría mover Direct Groups
+        # y Costa Rica Collection Direct como canales principales. Ellos son tan
+        # importantes como Agencias, OTAs y Direct». La migración 141 les cambió
+        # el `rueda_a` a propósito, y su propio encabezado demuestra que NO mueve
+        # un centavo: agrupar distinto no cambia `Σ mix × (1 − comisión)`.
+        #
+        # La excepción se declara por código, no se afloja la regla: cualquier
+        # OTRO canal que se mueva de destino sigue rompiendo esta prueba.
+        MOVIDOS_A_PROPOSITO = {"CRC_DIRECT": "CRC", "DIR_GROUPS": "GROUPS"}
         for c in datos:
-            esperado = mx.ENTRADA_A_COMISION.get(c.get("entrada", "") or "", "DIRECT")
+            esperado = MOVIDOS_A_PROPOSITO.get(
+                c["code"],
+                mx.ENTRADA_A_COMISION.get(c.get("entrada", "") or "", "DIRECT"))
             assert c["rueda_a"] == esperado, (
                 f"{archivo.parent.name}/{c['code']} cambió de destino: "
                 f"{esperado} -> {c['rueda_a']}")

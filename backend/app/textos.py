@@ -34,8 +34,8 @@ TEXTOS: dict[str, dict[str, str]] = {
         "es": "Beverage",
         "en": "Beverage"},
     "linea_ingreso.CLUB": {
-        "es": "Ingreso Madresal Club",
-        "en": "Ingreso Madresal Club"},
+        "es": "Ingreso Club Ojochal",
+        "en": "Ingreso Club Ojochal"},
     "linea_ingreso.CLUB_ACTIVIDAD": {
         "es": "Actividad fin de año",
         "en": "Actividad fin de año"},

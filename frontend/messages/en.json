@@ -106,7 +106,7 @@
       "properties": "Properties",
       "users": "Users",
       "auditActivity": "Audit / activity",
-      "club": "Club Madresal (memberships)",
+      "club": "Club Ojochal (memberships)",
       "origenes": "Data sources (QuickBooks, back office)",
       "monthEndPL": "Month P&L (Actual · Budget · Reforecast)",
       "statistics": "Statistics (class 9)",
@@ -381,8 +381,8 @@
     "excelHint": "The same report as .xlsx: one sheet per department, reconciliation up front.",
     "profit": "Profit",
     "totalYear": "Total Year",
-    "clubTitle": "Club Madresal — members",
-    "clubHint": "The Club sells access to the facilities. The fee sits in the department's revenue; this explains where it comes from.",
+    "clubTitle": "Club Ojochal — members",
+    "clubHint": "Club Ojochal sells access to the facilities. The fee sits in the department's revenue; this explains where it comes from.",
     "clubTotalNote": "The year total is December's closing balance, not the sum of the twelve months: these are members, not revenue.",
     "clubNoData": "No members loaded in this scenario.",
     "concept": "Concept",
@@ -2545,8 +2545,8 @@
     "xlsSubtitle": "Pax = Occupied nights × {factor} per night"
   },
   "clubStats": {
-    "title": "Club Madresal — members",
-    "hint": "The Club sells access to the hotel facilities. The access fee already sits in the department's revenue; this count explains where it comes from. It does not enter any P&L line.",
+    "title": "Club Ojochal — members",
+    "hint": "Club Ojochal sells access to the hotel facilities. The access fee already sits in the department's revenue; this count explains where it comes from. It does not enter any P&L line.",
     "totalNote": "The year total is December's closing balance, not the sum: these are members, not revenue.",
     "save": "Save members",
     "saved": "✓ Members saved.",
@@ -2554,9 +2554,9 @@
     "yearTotal": "Total Year"
   },
   "club": {
-    "title": "Club Madresal",
-    "intro": "The Club sells access to the hotel facilities; the real-estate development behind it is not part of this P&L. It has three revenue sources, one per account: the fee comes out on its own (members × monthly price) and the other two are typed in. All three add up to the same P&L line.",
-    "notEnabled": "Club Madresal is not enabled for this property. Turn it on in Master Data → Provisioning, department 260.",
+    "title": "Club Ojochal",
+    "intro": "Club Ojochal sells access to the hotel facilities; the real-estate development behind it is not part of this P&L. It has three revenue sources, one per account: the fee comes out on its own (members × monthly price) and the other two are typed in. All three add up to the same P&L line.",
+    "notEnabled": "Club Ojochal is not enabled for this property. Turn it on in Master Data → Provisioning, department 260.",
     "feeTitle": "Fee and Club revenue",
     "base": "Members who pay:",
     "baseHint": "Which count multiplies the fee. Paying members by default: conditional ones, by definition, do not pay yet.",

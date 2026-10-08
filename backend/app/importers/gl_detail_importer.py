@@ -181,7 +181,8 @@ _POR_PALABRA: list[tuple[str, str]] = [
     ("beneficios", "0181"),
     ("property", "0250"), ("propiedad", "0250"),  # Property/below-GOP (8xxx)
     ("miscel", "280"), ("sostenib", "280"),   # Miscelaneos (ingresos 48xx + Sustainability)
-    ("madresal", "260"),     # Club Madresal (operativo)
+    # «madresal» se queda: los GL ya cargados lo dicen asi.
+    ("club ojochal", "260"), ("madresal", "260"),   # Club Ojochal (operativo)
     ("recreativa", "270"),   # Área Recreativa (operativo)
 ]
 
