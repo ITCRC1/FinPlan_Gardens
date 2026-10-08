@@ -31,6 +31,13 @@ from app.api import scenarios_api
 from app.errores import MENSAJES, texto
 
 
+def _tramo(fuente: str) -> str:
+    """El tramo del chequeo de ano, desde el calculo hasta el raise."""
+    ini = fuente.index("desalineados = sorted(")
+    fin = fuente.index("# ── La VERIFICACIÓN corre ANTES", ini)
+    return fuente[ini:fin]
+
+
 @pytest.fixture(scope="module")
 def fuente() -> str:
     return inspect.getsource(scenarios_api.import_gl_detail)
@@ -71,9 +78,11 @@ def test_no_tiene_salida_de_emergencia(fuente):
     equivocado no hay version legitima: el bloque dice de que ano es. Si de
     verdad hay que mover el dato, se cambia la etiqueta en el Excel.
     """
-    ini = fuente.index("desalineados = sorted(")
-    fin = fuente.index("# ── La VERIFICACIÓN corre ANTES", ini)
-    assert "confirmar_diferencias" not in fuente[ini:fin], (
+    # Se miran las LINEAS DE CODIGO, no los comentarios: el tramo explica por
+    # que NO usa `confirmar_diferencias`, asi que el nombre aparece ahi escrito.
+    codigo = [l for l in _tramo(fuente).splitlines()
+              if not l.lstrip().startswith("#")]
+    assert not [l for l in codigo if "confirmar_diferencias" in l], (
         "le pusieron salida de emergencia al chequeo de ano"
     )
 
@@ -108,4 +117,23 @@ def test_el_bloque_del_archivo_trae_el_ano(tmp_path):
     assert bloques, "la plantilla no produjo ningun bloque"
     assert bloques[0]["year"] == 2025, (
         f"el bloque no trae el ano: {bloques[0].get('year')!r}"
+    )
+
+
+def test_no_abre_el_panel_con_boton_de_saltarse_la_regla(fuente):
+    """El 409 NO manda «bloques», y eso es una decision.
+
+    `lib/api.ts` abre el panel rojo —con su boton «subir igual»— en cuanto el
+    detalle del 409 trae la clave `bloques`:
+
+        if (j?.detail?.bloques) throw new ErrorDeVerificacion(...)
+
+    Ese boton manda `confirmar_diferencias=true`, que a este chequeo no lo
+    abre. Mandar `bloques` pondria en pantalla un boton que promete saltarse la
+    regla y despues falla igual — y la tabla se dibujaria con «no trae bloque de
+    verificacion», que no tiene nada que ver con lo que paso.
+    """
+    assert '"bloques": [' not in _tramo(fuente), (
+        "el 409 del ano volvio a mandar «bloques»: la pantalla va a ofrecer "
+        "«subir igual» para una regla que no tiene salida de emergencia"
     )

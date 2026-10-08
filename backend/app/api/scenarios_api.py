@@ -1901,8 +1901,14 @@ async def import_gl_detail(
                               f"y la versión elegida es de {forced.year}."),
                     "que_hacer": (f"Elegí la versión {forced.type} del año que trae el "
                                   f"archivo y volvé a subirlo. No se cargó nada."),
-                    "bloques": [{"label": lab, "anio_archivo": a,
-                                 "anio_destino": forced.year} for lab, a in desalineados],
+                    # Sin «bloques» a propósito: `lib/api.ts` abre el panel
+                    # rojo —con su botón «subir igual»— en cuanto el 409 trae
+                    # esa clave, y ese botón manda `confirmar_diferencias=true`,
+                    # que a este chequeo NO lo abre. Sería un botón que promete
+                    # saltarse la regla y después falla igual. (Además la tabla
+                    # se dibujaría con «no trae bloque de verificación», que no
+                    # tiene nada que ver con lo que pasó.) Sin la clave, la
+                    # pantalla muestra el texto del error, que ya lo dice todo.
                     "texto": "\n".join(
                         f"«{lab}» es de {a}, pero la versión elegida es de {forced.year}"
                         for lab, a in desalineados),
