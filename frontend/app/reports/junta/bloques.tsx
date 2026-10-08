@@ -345,7 +345,7 @@ export const DEPARTAMENTOS = [
   { key: "TRANSPORTATION", label: "Transporte", grupo: "TRANSPORT" },
   { key: "TIENDA", label: "Tienda" },
   { key: "RETAIL", label: "Gift Shop" },
-  { key: "RENTAL_2", label: "Rental #2" },
+  { key: "SABOR_OJOCHAL", label: "Sabor Ojochal" },
   { key: "LAUNDRY", label: "Lavandería" },
   { key: "SUSTAINABILITY", label: "Sustainability Fee" },
   { key: "CLUB", label: "Club Ojochal" },

@@ -88,7 +88,7 @@ NOMBRE_DEPTO = {
     "REV_PRIVATE_BAR": "Private Bar",
     "REV_CLUB": "Club Ojochal",
     "REV_AREC": "Área Recreativa",
-    "REV_RENTAL_2": "Rental #2",
+    "REV_SABOR_OJOCHAL": "Sabor Ojochal",
     "REV_RENTAL_3": "Rental #3",
     "REV_MISC_OTHER": "Misceláneos y otros",
 }

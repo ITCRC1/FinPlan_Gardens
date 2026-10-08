@@ -162,7 +162,7 @@ SIN_NUCLEO_A_PROPOSITO = {
 
 INDEPENDIENTES = {
     "0210": "OH_UTILITIES",
-    "0205": "OPEX_SABOR_OJOCHAL",   # operativo desde 2026-09-14
+    "0205": "OPEX_RENTAL_1",   # operativo desde 2026-09-14
     "0151": "OPEX_TIENDA",       # cada tienda con su propia linea
     "0165": "OPEX_RETAIL",       # el Gift Shop se queda con RETAIL
     "0121": "OPEX_PRIVATE_BAR",
@@ -218,7 +218,7 @@ def test_utilities_y_sabor_de_ojochal_no_cuelgan_de_nadie():
     assert catalogo["0210"]["pl_kind"] == "OVERHEAD", catalogo["0210"]["pl_kind"]
     assert catalogo["0205"]["pl_kind"] == "OPERATING", catalogo["0205"]["pl_kind"]
     assert catalogo["0205"]["is_revenue_dept"] is True, (
-        "Sabor de Ojochal factura: sin esto no se le dibuja línea de ingreso")
+        "Rental #1 factura: sin esto no se le dibuja línea de ingreso")
 
     for dept in ("0205", "0210"):
         assert catalogo[dept]["parent_dept_code"] is None, (
@@ -228,7 +228,7 @@ def test_utilities_y_sabor_de_ojochal_no_cuelgan_de_nadie():
 
 def test_utilities_dejo_de_compartir_codigo_con_el_0205(mapeo):
     """Las 8 reglas de Utility vivían con dept_code 0205, que es otro
-    departamento (hoy Sabor de Ojochal). Dos departamentos distintos amontonados
+    departamento (hoy Rental #1). Dos departamentos distintos amontonados
     bajo el mismo código."""
     _, reglas = mapeo
     del_0205 = {m["report_line_code"] for m in reglas
@@ -237,7 +237,7 @@ def test_utilities_dejo_de_compartir_codigo_con_el_0205(mapeo):
     # tiene sus lineas propias -- ingreso, gasto y costo -- y las tres son
     # suyas. Lo que esta prueba cuida es que no aparezca una linea de OTRO
     # departamento, que fue el bug original con Utilities.
-    assert {c.split("_", 1)[1] for c in del_0205} == {"SABOR_OJOCHAL"}, (
+    assert {c.split("_", 1)[1] for c in del_0205} == {"RENTAL_1"}, (
         f"el 0205 todavia lleva reglas de otro departamento: {del_0205}")
 
 

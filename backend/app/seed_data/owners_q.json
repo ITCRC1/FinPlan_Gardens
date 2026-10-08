@@ -213,10 +213,10 @@
     "REV_TRANSPORTATION",
     "REV_LAUNDRY",
     "REV_CLUB",
-    "REV_RENTAL_2",
+    "REV_SABOR_OJOCHAL",
     "REV_RENTAL_3",
     "REV_AREC",
-    "REV_SABOR_OJOCHAL"
+    "REV_RENTAL_1"
    ],
    "operandos": [],
    "formula_nota": "",
@@ -412,8 +412,8 @@
     "COS_LAUNDRY",
     "OPEX_CLUB",
     "COS_CLUB",
-    "OPEX_RENTAL_2",
-    "COS_RENTAL_2",
+    "OPEX_SABOR_OJOCHAL",
+    "COS_SABOR_OJOCHAL",
     "OPEX_RENTAL_3",
     "COS_RENTAL_3"
    ],
@@ -529,8 +529,8 @@
     "OH_LAUNDRY",
     "OH_AREC",
     "COH_AREC",
-    "OPEX_SABOR_OJOCHAL",
-    "COS_SABOR_OJOCHAL"
+    "OPEX_RENTAL_1",
+    "COS_RENTAL_1"
    ],
    "operandos": [],
    "formula_nota": "",
@@ -1295,7 +1295,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "REV_SABOR_OJOCHAL",
+   "linea_pl": "REV_RENTAL_1",
    "report_code": "REV_OOD_TOTAL",
    "nota": "MEDIA — D3"
   },
@@ -1313,7 +1313,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "REV_RENTAL_2",
+   "linea_pl": "REV_SABOR_OJOCHAL",
    "report_code": "REV_OOD_TOTAL",
    "nota": "ALTA"
   },
@@ -1421,7 +1421,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "COS_RENTAL_2",
+   "linea_pl": "COS_SABOR_OJOCHAL",
    "report_code": "EXP_OOD",
    "nota": "ALTA"
   },
@@ -1475,7 +1475,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "OPEX_RENTAL_2",
+   "linea_pl": "OPEX_SABOR_OJOCHAL",
    "report_code": "EXP_OOD",
    "nota": "ALTA"
   },
@@ -1529,7 +1529,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "COS_SABOR_OJOCHAL",
+   "linea_pl": "COS_RENTAL_1",
    "report_code": "UND_AG",
    "nota": "MEDIA — D3"
   },
@@ -1553,7 +1553,7 @@
   },
   {
    "report_key": "owners_q",
-   "linea_pl": "OPEX_SABOR_OJOCHAL",
+   "linea_pl": "OPEX_RENTAL_1",
    "report_code": "UND_AG",
    "nota": "MEDIA — D3"
   },

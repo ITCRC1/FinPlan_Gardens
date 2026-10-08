@@ -96,7 +96,7 @@ def test_sabor_de_ojochal_quedo_como_ingreso():
                   and str(r["account_code"]).startswith("45")}
     assert set(por_cuenta) == {"4500", "4501", "4502", "4503"}
     for cta, r in por_cuenta.items():
-        assert r["report_line_code"] == "REV_SABOR_OJOCHAL", cta
+        assert r["report_line_code"] == "REV_RENTAL_1", cta
         assert r["financial_nature"] == "Revenue", cta
 
 
@@ -108,7 +108,7 @@ def test_el_gasto_de_sabor_de_ojochal_se_cuenta_una_sola_vez():
     utilidad del departamento restara su propio gasto lo habría contado DOS
     veces. Por eso `PROFIT_CLARO_HUERTA` era el ingreso pelado.
 
-    Ahora el 0205 es OPERATIVO. Su gasto vive en `OPEX_SABOR_OJOCHAL`, dentro
+    Ahora el 0205 es OPERATIVO. Su gasto vive en `OPEX_RENTAL_1`, dentro
     del bloque operativo, y ya no pasa por el overhead — así que la utilidad
     **tiene** que restarlo, y el peligro es el opuesto: que no lo reste y el
     departamento parezca ganar su venta entera.
@@ -119,16 +119,16 @@ def test_el_gasto_de_sabor_de_ojochal_se_cuenta_una_sola_vez():
     cfg = {r["line_code"]: r for r in
            json.loads(SEED.read_text(encoding="utf-8"))["report_line_config"]}
 
-    f = cfg["PROFIT_SABOR_OJOCHAL"]["calculation_logic"].strip()
-    assert f == "REV_SABOR_OJOCHAL - OPEX_SABOR_OJOCHAL - COS_SABOR_OJOCHAL", (
+    f = cfg["PROFIT_RENTAL_1"]["calculation_logic"].strip()
+    assert f == "REV_RENTAL_1 - OPEX_RENTAL_1 - COS_RENTAL_1", (
         f"quedó como «{f}»: la utilidad del 0205 tiene que restar su gasto")
 
     # La otra mitad: el gasto NO puede seguir también en el bloque de overhead.
-    assert "OH_SABOR_OJOCHAL" not in cfg and "COH_SABOR_OJOCHAL" not in cfg, (
+    assert "OH_RENTAL_1" not in cfg and "COH_RENTAL_1" not in cfg, (
         "el 0205 volvió a tener líneas de overhead: su gasto se restaría en el "
         "bloque operativo Y otra vez debajo del Operating Profit")
-    assert cfg["OPEX_SABOR_OJOCHAL"]["section"] == "OPERATING EXPENSES"
-    assert cfg["COS_SABOR_OJOCHAL"]["section"] == "COST OF SALES"
+    assert cfg["OPEX_RENTAL_1"]["section"] == "OPERATING EXPENSES"
+    assert cfg["COS_RENTAL_1"]["section"] == "COST OF SALES"
 
 
 def test_la_naturaleza_declarada_coincide_con_la_clase():

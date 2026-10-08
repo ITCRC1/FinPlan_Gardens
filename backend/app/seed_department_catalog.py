@@ -35,7 +35,7 @@ DEPT_NAMES = {
     "0152": "Transportation", "0161": "Laundry Operations", "0162": "Laundry Revenue",
     # 0155/0156: departamentos de alquiler desde 2026-09-15. Eran
     # Innoceana y Crowther Lab, heredados del clon de Corcovado.
-    "0155": "Rental #2", "0156": "Rental #3",
+    "0155": "Sabor Ojochal", "0156": "Rental #3",
     # 0181 = Gerencia, hijo de 0180 (owner, 2026-08-14). Acá decía «Management»
     # y el mapeo decía «Departamento de Beneficios Empleados»: dos verdades para
     # el mismo código. Manda la planilla, que es la que tiene gente — GERENTE
@@ -47,10 +47,13 @@ DEPT_NAMES = {
     "0183": "Purchasing", "0184": "Recursos Humanos", "0186": "Security",
     "0190": "Sales and Marketing", "0191": "Sales & Marketing (remoto)",
     "0200": "Maintenance", "0230": "Information System",
-    # 0205 = Sabor de Ojochal (owner, 2026-09-14). Era «Claro del Bosque
+    # 0205 = Rental #1. Se llamó «Sabor de Ojochal» hasta el 2026-10-07, cuando
+    # ese nombre se mudó al 0155 y los dos se intercambiaron.
+    #
+    # (owner, 2026-09-14). Era «Claro del Bosque
     # (Huerta)», un overhead solo-gastos heredado del clon de Corcovado que esta
     # propiedad nunca operó. Ahora es un centro de utilidad propio.
-    "0205": "Sabor de Ojochal", "0210": "Utilities",
+    "0205": "Rental #1", "0210": "Utilities",
     "0220": "Employee Dining (Cafetería)",
     "260": "Club Ojochal", "270": "Área Recreativa", "280": "Miscelaneos",
     # 0250 = el departamento de los gastos de la propiedad (below-GOP, 8xxx).
@@ -136,10 +139,10 @@ def build_rows() -> list[dict]:
         "is_revenue_dept": False, "is_allocation_source": False,
         "parent_dept_code": None, "display_order": order, "active": True,
     })
-    # ⚠️ El 0205 (Sabor de Ojochal) NO lleva bloque manual acá.
+    # ⚠️ El 0205 (Rental #1) NO lleva bloque manual acá.
     #
     # Tenía uno mientras era overhead solo-gastos sin grupo propio. Desde que es
-    # un grupo operativo (`SABOR_OJOCHAL` en OPERATING_DEPT_GROUPS), el lazo de
+    # un grupo operativo (`RENTAL_1` en OPERATING_DEPT_GROUPS), el lazo de
     # arriba ya le arma la fila: grupo propio, pl_kind OPERATING e
     # is_revenue_dept True. Repetirlo acá abajo generaría DOS entradas para el
     # mismo dept_code y, como `seed()` recorre la lista en orden y pisa, mandaría

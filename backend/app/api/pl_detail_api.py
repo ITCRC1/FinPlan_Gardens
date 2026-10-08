@@ -90,13 +90,13 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Club Ojochal", ["REV_CLUB"]),
     ("det", "Laundry", ["REV_LAUNDRY"]),
     ("det", "Private Bar", ["REV_PRIVATE_BAR"]),
-    # Sabor de Ojochal (0205). ⚠️ Su ingreso NO tenía renglón acá: la línea
+    # Rental #1 (0205). ⚠️ Su ingreso NO tenía renglón acá: la línea
     # existía en el mapeo (`REV_CLARO_HUERTA`) y entraba a `TOTAL_REVENUES`,
     # pero no se dibujaba en ninguna fila — el mismo agujero que tuvo la
     # lavandería en julio 2026.
-    ("det", "Sabor de Ojochal", ["REV_SABOR_OJOCHAL"]),
+    ("det", "Rental #1", ["REV_RENTAL_1"]),
     ("det", "Miscellaneous  Revenue", ["REV_MISC_OTHER", "REV_SUSTAINABILITY",
-                                       "REV_TRANSPORTATION", "REV_RENTAL_2"]),
+                                       "REV_TRANSPORTATION", "REV_SABOR_OJOCHAL"]),
     ("esp", "", []),
     ("tot", "TOTAL REVENUES", ["TOTAL_REVENUES"]),
     ("esp", "", []),
@@ -110,10 +110,10 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Club Ojochal", ["OPEX_CLUB", "COS_CLUB"]),
     ("det", "Laundry", ["OPEX_LAUNDRY", "COS_LAUNDRY"]),
     ("det", "Private Bar", ["OPEX_PRIVATE_BAR", "COS_PRIVATE_BAR"]),
-    ("det", "Sabor de Ojochal", ["OPEX_SABOR_OJOCHAL", "COS_SABOR_OJOCHAL"]),
+    ("det", "Rental #1", ["OPEX_RENTAL_1", "COS_RENTAL_1"]),
     ("det", "Miscellaneous  Revenue", ["OPEX_MISCELLANEOUS", "OPEX_TRANSPORTATION",
-                                       "COS_TRANSPORTATION", "OPEX_RENTAL_2",
-                                       "COS_RENTAL_2"]),
+                                       "COS_TRANSPORTATION", "OPEX_SABOR_OJOCHAL",
+                                       "COS_SABOR_OJOCHAL"]),
     ("esp", "", []),
     ("tot", "Total Operationg expenses", ["TOTAL_OPERATING_EXPENSES"]),
     ("esp", "", []),
@@ -126,9 +126,9 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Club Ojochal", ["PROFIT_CLUB"]),
     ("det", "Laundry", ["PROFIT_LAUNDRY"]),
     ("det", "Private Bar", ["PROFIT_PRIVATE_BAR"]),
-    ("det", "Sabor de Ojochal", ["PROFIT_SABOR_OJOCHAL"]),
+    ("det", "Rental #1", ["PROFIT_RENTAL_1"]),
     ("det", "Miscellaneous  Revenue", ["PROFIT_MISC_OTHER", "PROFIT_SUSTAINABILITY",
-                                       "PROFIT_TRANSPORTATION", "PROFIT_RENTAL_2"]),
+                                       "PROFIT_TRANSPORTATION", "PROFIT_SABOR_OJOCHAL"]),
     ("esp", "", []),
     ("tot", "OPERATING PROFIT", ["OPERATING_PROFIT"]),
     ("esp", "", []),
@@ -144,7 +144,7 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Information System", ["OH_INFORMATION_SYSTEM",
                                    "COH_INFORMATION_SYSTEM"]),
     ("det", "Utilities", ["OH_UTILITIES", "COH_UTILITIES"]),
-    # Sabor de Ojochal (0205) ya NO va acá: desde 2026-09-14 es operativo y sus
+    # Rental #1 (0205) ya NO va acá: desde 2026-09-14 es operativo y sus
     # renglones están arriba (REVENUES / Operating Expenses / Operating Profit).
     # Los dos departamentos de REPARTO. Su renglón es el SOBRANTE que no
     # alcanzó a repartirse (owner, 2026-08-28: «si tiene saldo que aparezca esa

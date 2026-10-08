@@ -58,10 +58,22 @@ OPERATING_DEPT_GROUPS: dict[str, list[str]] = {
     "LAUNDRY":   ["0162"],   # Laundry Revenue — ingreso del servicio (operativo)
     # 0155 y 0156 pasaron a ser departamentos de alquiler (owner, 2026-09-15).
     # Eran Innoceana y Crowther Lab, heredados del clon de Corcovado.
-    "RENTAL_2":  ["0155"],
+    #
+    # ⚠️ Y el 2026-10-07 el 0155 y el 0205 SE INTERCAMBIARON EL NOMBRE: el 0155
+    # —que era «Rental #2»— pasó a ser Sabor Ojochal, y el 0205 —que era «Sabor
+    # de Ojochal»— pasó a ser Rental #1. El motivo: el checkbook de ingresos
+    # dibuja las líneas de `REVENUE_LINES`, y el 0155 tiene una (su clave de
+    # dato sigue siendo `innoceana`) mientras que el 0205 nunca la tuvo. Sin
+    # ese intercambio no había dónde digitar el ingreso de Sabor Ojochal.
+    #
+    # Por eso NO queda ningún «Rental #2»: ese número se lo llevó el nombre.
+    "SABOR_OJOCHAL":  ["0155"],
     "RENTAL_3":  ["0156"],
     "CLUB":      ["260"],    # Club Madresal — operativo, membresía (Amarena; ambiente común CWL)
-    # Sabor de Ojochal (owner, 2026-09-14): el 0205 pasa de overhead solo-gastos
+    # Rental #1 — se llamó «Sabor de Ojochal» entre el 2026-09-14 y el
+    # 2026-10-07, cuando ese nombre se mudó al 0155 (ver arriba).
+    #
+    # (owner, 2026-09-14): el 0205 pasa de overhead solo-gastos
     # a centro de utilidad propio — factura y tiene su costo, así que necesita
     # ingreso, gasto y utilidad separados como cualquier operativo.
     #
@@ -69,7 +81,7 @@ OPERATING_DEPT_GROUPS: dict[str, list[str]] = {
     # (REV_/OH_/COH_/PROFIT_CLARO_HUERTA) vivían en el JSON sin grupo que las
     # respaldara: el ingreso se dibujaba arriba y el gasto abajo, en overhead, y
     # la utilidad salía igual al ingreso porque no le restaba nada.
-    "SABOR_OJOCHAL": ["0205"],
+    "RENTAL_1": ["0205"],
 }
 
 # Overhead departments — subtracted after Operating Profit.
@@ -102,7 +114,7 @@ FALLBACK_OVERHEAD_GROUP = "OTHER_OVERHEAD"
 # Display order
 OPERATING_GROUP_ORDER = [
     "ROOMS", "FB", "PRIVATE_BAR", "SPA", "TOURS", "TIENDA", "RETAIL",
-    "TRANSPORT", "LAUNDRY", "RENTAL_2", "RENTAL_3", "CLUB", "SABOR_OJOCHAL",
+    "TRANSPORT", "LAUNDRY", "SABOR_OJOCHAL", "RENTAL_3", "CLUB", "RENTAL_1",
     "AREC", "SUSTAINABILITY", "MISC_OTHER",
 ]
 # Grupos que arriba SOLO traen ingreso: su costo no vive en el bloque operativo.
@@ -119,8 +131,8 @@ GROUP_NAMES = {
     "SPA": "SPA", "TOURS": "Tours",
     "TIENDA": "Tienda", "RETAIL": "Gift Shop", "TRANSPORT": "Transportation",
     "LAUNDRY": "Laundry", "LAUNDRY_OPS": "Laundry Operations",
-    "RENTAL_2": "Rental #2", "RENTAL_3": "Rental #3",
-    "CLUB": "Club Ojochal", "SABOR_OJOCHAL": "Sabor de Ojochal",
+    "SABOR_OJOCHAL": "Sabor Ojochal", "RENTAL_3": "Rental #3",
+    "CLUB": "Club Ojochal", "RENTAL_1": "Rental #1",
     "AREC": "Área Recreativa",
     "SUSTAINABILITY": "Sustainability Fee",
     "MISC_OTHER": "Other / Misc Revenue",
@@ -144,7 +156,7 @@ REVENUE_LINE_TO_GROUP: dict[str, str] = {
     "tienda": "TIENDA",
     "retail": "RETAIL",
     "laundry": "LAUNDRY",
-    "innoceana": "RENTAL_2",
+    "innoceana": "SABOR_OJOCHAL",
     "crowther": "RENTAL_3",
     # Las tres fuentes del Club caen en el mismo grupo: la cuota, la actividad
     # de fin de año y los visitantes son un solo centro de utilidad.
@@ -161,7 +173,7 @@ GROUP_TO_REVENUE_LINE: dict[str, str] = {
     "SPA": "spa", "TOURS": "activities",
     "TRANSPORT": "transport", "TIENDA": "tienda", "RETAIL": "retail",
     "LAUNDRY": "laundry",
-    "RENTAL_2": "innoceana", "RENTAL_3": "crowther",
+    "SABOR_OJOCHAL": "innoceana", "RENTAL_3": "crowther",
     "CLUB": "club", "AREC": "arec",
     "SUSTAINABILITY": "sustainability", "MISC_OTHER": "misc_other",
 }
@@ -185,7 +197,7 @@ REVENUE_LINE_TO_REPORT_LINE: dict[str, str] = {
     "tienda": "REV_TIENDA",
     "retail": "REV_RETAIL",
     "laundry": "REV_LAUNDRY",
-    "innoceana": "REV_RENTAL_2",
+    "innoceana": "REV_SABOR_OJOCHAL",
     # …y en la misma línea del P&L, igual que food/beverage/fnb_misc → REV_FB.
     "club": "REV_CLUB", "club_actividad": "REV_CLUB",
     "club_visitantes": "REV_CLUB",
@@ -948,7 +960,7 @@ _MOTOR_TO_CANON: dict[str, tuple[str, str]] = {
     "REV_RETAIL": ("REV_RETAIL", "REVENUES"),
     "REV_TRANSPORT": ("REV_TRANSPORTATION", "REVENUES"),
     "REV_LAUNDRY": ("REV_LAUNDRY", "REVENUES"),
-    "REV_RENTAL_2": ("REV_RENTAL_2", "REVENUES"),
+    "REV_SABOR_OJOCHAL": ("REV_SABOR_OJOCHAL", "REVENUES"),
     "REV_RENTAL_3": ("REV_RENTAL_3", "REVENUES"),
     "REV_CLUB": ("REV_CLUB", "REVENUES"),
     "REV_AREC": ("REV_AREC", "REVENUES"),
@@ -965,7 +977,7 @@ _MOTOR_TO_CANON: dict[str, tuple[str, str]] = {
     "OPEXP_RETAIL": ("OPEX_RETAIL", "OPERATING EXPENSES"),
     "OPEXP_TRANSPORT": ("OPEX_TRANSPORTATION", "OPERATING EXPENSES"),
     "OPEXP_LAUNDRY": ("OPEX_LAUNDRY", "OPERATING EXPENSES"),
-    "OPEXP_RENTAL_2": ("OPEX_RENTAL_2", "OPERATING EXPENSES"),
+    "OPEXP_SABOR_OJOCHAL": ("OPEX_SABOR_OJOCHAL", "OPERATING EXPENSES"),
     "OPEXP_RENTAL_3": ("OPEX_RENTAL_3", "OPERATING EXPENSES"),
     "OPEXP_CLUB": ("OPEX_CLUB", "OPERATING EXPENSES"),
     # AREC no emite OPEXP_ (su costo baja al overhead como OVH_AREC → OH_AREC)
@@ -980,7 +992,7 @@ _MOTOR_TO_CANON: dict[str, tuple[str, str]] = {
     "OPPROFIT_RETAIL": ("PROFIT_RETAIL", "OPERATING PROFIT"),
     "OPPROFIT_TRANSPORT": ("PROFIT_TRANSPORTATION", "OPERATING PROFIT"),
     "OPPROFIT_LAUNDRY": ("PROFIT_LAUNDRY", "OPERATING PROFIT"),
-    "OPPROFIT_RENTAL_2": ("PROFIT_RENTAL_2", "OPERATING PROFIT"),
+    "OPPROFIT_SABOR_OJOCHAL": ("PROFIT_SABOR_OJOCHAL", "OPERATING PROFIT"),
     "OPPROFIT_RENTAL_3": ("PROFIT_RENTAL_3", "OPERATING PROFIT"),
     "OPPROFIT_CLUB": ("PROFIT_CLUB", "OPERATING PROFIT"),
     "OPPROFIT_AREC": ("PROFIT_AREC", "OPERATING PROFIT"),

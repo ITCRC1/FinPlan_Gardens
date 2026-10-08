@@ -49,8 +49,8 @@ TEXTOS: dict[str, dict[str, str]] = {
         "es": "Food",
         "en": "Food"},
     "linea_ingreso.INNOCEANA": {
-        "es": "Rental #2",
-        "en": "Rental #2"},
+        "es": "Sabor Ojochal",
+        "en": "Sabor Ojochal"},
     "linea_ingreso.LAUNDRY": {
         "es": "Laundry",
         "en": "Laundry"},

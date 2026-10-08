@@ -105,7 +105,7 @@ SECCIONES = [
 # orden a plata que no aparece.
 ORDEN_DEPTOS = [
     "0110", "0120", "0130", "0140", "0150", "0151", "0165", "260",
-    # 0205 Sabor de Ojochal: operativo desde 2026-09-14, así que sube al bloque
+    # 0205 Rental #1: operativo desde 2026-09-14, así que sube al bloque
     # operativo y sale del de overhead.
     "0205",
     "0161", "0162", "0250", "0280", "280",

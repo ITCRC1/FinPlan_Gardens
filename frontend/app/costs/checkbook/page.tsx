@@ -42,7 +42,7 @@ const REV_LINE_OPTIONS: { value: RevenueLine; label: string }[] = [
   { value: "ROOMS",          label: "Room Revenue" },
   { value: "ACTIVITIES",     label: "Activities Revenue" },
   { value: "TRANSPORT",      label: "Transport Revenue" },
-  { value: "INNOCEANA",      label: "Rental #2 Revenue" },
+  { value: "INNOCEANA",      label: "Sabor Ojochal Revenue" },
   { value: "RETAIL",         label: "Retail Revenue" },
   { value: "SPA",            label: "Spa Revenue" },
   { value: "SUSTAINABILITY", label: "Sustainability Revenue" },

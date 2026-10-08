@@ -65,12 +65,12 @@ _DEPT_KEYWORDS: list[tuple[str, str]] = [
     ("ventas", "0190"),
     ("mercadeo", "0190"),
     ("mantenim", "0200"),
-    # El 0205 es Sabor de Ojochal. El alias viejo («claro huerta») se queda: los
+    # El 0205 es Rental #1. El alias viejo («claro huerta») se queda: los
     # archivos ya cargados lo dicen asi y sin el dejarian de encontrar depto.
     ("sabor", "0205"),
     ("claro huerta", "0205"),
-    # ⚠️ Utilities es el 0210, NO el 0205. El 0205 es Sabor de Ojochal, que
-    # tiene sus propias lineas (REV_/OPEX_/COS_/PROFIT_SABOR_OJOCHAL). Con esto
+    # ⚠️ Utilities es el 0210, NO el 0205. El 0205 es Rental #1, que
+    # tiene sus propias lineas (REV_/OPEX_/COS_/PROFIT_RENTAL_1). Con esto
     # los actuales cargados por el resumen dejaban `OH_UTILITIES` en CERO e
     # inflaban el 0205. El importador del GL siempre mando a 0210.
     ("utility", "0210"),
