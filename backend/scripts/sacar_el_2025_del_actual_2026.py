@@ -1,50 +1,58 @@
 # -*- coding: utf-8 -*-
-"""Saca de ACTUAL 2026 el ano 2025 que entro por el selector equivocado.
+"""Saca de ACTUAL 2026 los meses de 2025 que quedaron en agosto-diciembre.
 
 ## Que paso (2026-10-08)
 
-El owner subio `Ojochal_Gardens_Detalle_ACTUAL_Final_2025_full.xlsx` —bloque
-«Actual Final 2025»— con **ACTUAL Final 2026** elegido en el selector de
-version. Los doce meses de 2025 quedaron guardados como 2026:
+El archivo `..._ACTUAL_Final_2025_full.xlsx` —bloque «Actual Final 2025»— se
+subio con **ACTUAL Final 2026** elegido en el selector. Los doce meses de 2025
+quedaron guardados como 2026.
 
-    13:49:48  ->  ACTUAL 2026   (equivocado)
-    14:17:39  ->  ACTUAL 2025   (correcto, y sigue ahi)
+Despues se subio el detalle real de 2026, que trae **enero a julio**. La carga
+es `merge=true`: reemplaza SOLO los meses que vienen en el archivo. Asi que
+enero-julio quedaron bien y **agosto-diciembre siguieron siendo 2025**.
 
-**Nada fallo.** El P&L cuadro consigo mismo y la verificacion de arriba contra
-el detalle de abajo tambien, porque los dos lados salen del MISMO archivo. Lo
-unico que no cuadraba era contra la realidad, y eso el sistema no lo miraba.
+Medido contra ACTUAL 2025, identico al centavo en las cinco tablas:
 
-El agujero ya esta tapado: `scenarios_api.py` compara el ano del bloque contra
-el de la version elegida y se niega antes de escribir una sola fila
-(`gl.ano_no_coincide`, sin salida de emergencia). Este script limpia lo que
-alcanzo a entrar ANTES de ese arreglo.
+    actual_entries             184,022.53     opex_entries      48,649.29
+    revenue_account_entries     82,588.09     belowgop_...      16,195.92
+    cost_entries                 4,454.17     payroll (8-12)    32,135.07
 
-## Que borra y que NO
+Y las estadisticas: 308/98, 326/56, 363/49, 329/80, 369/155 — calcadas.
 
-**Borra**, y solo en ACTUAL 2026:
+**Nada fallo, otra vez.** El P&L cuadra consigo mismo porque esos cinco meses
+son internamente coherentes: son un año de verdad, solo que el año equivocado.
 
-    actual_entries · actual_pl_lines · belowgop_account_entries · cost_entries
-    opex_entries · payroll_concept_entries · payroll_positions
-    revenue_account_entries · scenario_stats
+El agujero que lo dejo entrar ya esta tapado (`gl.ano_no_coincide`).
+
+## Que toca y que NO
+
+**Toca**, y solo en ACTUAL 2026:
+
+* `actual_entries`, `revenue_account_entries`, `opex_entries`, `cost_entries`,
+  `belowgop_account_entries` → pone en **cero** las columnas `aug..dec`.
+  No borra la fila: enero-julio de esa misma fila es dato bueno de 2026.
+* `payroll_concept_entries`, `scenario_stats`, `actual_pl_lines` → **borra** las
+  filas de mes >= 8. En estas tablas la fila ES el mes.
 
 **NO toca:**
 
-* **ACTUAL 2025** — la carga buena. El script lo mide antes y despues y aborta
-  si cambio una sola fila.
+* **Enero a julio del ACTUAL 2026.** Es el dato real de 2026, recien subido. El
+  script lo mide antes y despues y aborta si cambio un centavo.
+* **ACTUAL 2025.** Igual: medido antes y despues.
+* **`payroll_positions`.** Son las posiciones sinteticas `(Actual GL)`, con FTE
+  en cero; aportan costo via `payroll_concept_entries`, no headcount. Borrarlas
+  dejaria a enero-julio sin a quien colgar su planilla.
 * **Los 12 tipos de cambio del 2026.** Son del 2026 y no vinieron del archivo.
-* Ningun otro escenario.
-
-Tambien borra la traza de la subida de las 13:49 (`import_files` /
-`import_batches` del 2026). El archivo no quedo en el 2026, asi que el registro
-no debe decir que si — y dejarlo haria que una carga legitima de ese mismo
-archivo al 2026 chocara contra un 409 que ya no aplica.
+* **FORECAST Working 2026.** Su agosto-diciembre se cargo aparte y esta bien
+  ($86,254.43). Sus meses cerrados (1-7) no los guarda: los espeja del ACTUAL
+  2026 —ver `engine/meses_cerrados.py`—, asi que se arreglan solos con esto.
 
 ## Como se corre
 
     python -m scripts.sacar_el_2025_del_actual_2026              # simula
     python -m scripts.sacar_el_2025_del_actual_2026 --aplicar    # escribe
 
-Todo va en UNA transaccion: o sale entero o no sale.
+Todo en UNA transaccion: o sale entero o no sale.
 """
 from __future__ import annotations
 
@@ -54,105 +62,156 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-#: Los dos escenarios, por id. Fijos a proposito: un script que borra no elige
-#: su objetivo por nombre, porque un nombre se repite y un id no.
+#: Fijos a proposito: un script que borra no elige su objetivo por nombre,
+#: porque un nombre se repite y un id no.
 AC_2025 = "21e052d9-29de-49c7-9c9a-189bdfb60fae"
 AC_2026 = "49dfca0d-acce-4190-8d4b-aebedc818d40"
 
-#: La subida equivocada de las 13:49.
-FILE_2026 = "db95aeb6-a360-4660-91c6-573e931c6934"
+MESES = ["jan", "feb", "mar", "apr", "may", "jun",
+         "jul", "aug", "sep", "oct", "nov", "dec"]
+#: Lo que sobro del 2025. Agosto = mes 8.
+DESDE = 8
+TARDE = MESES[DESDE - 1:]
+TEMPRANO = MESES[:DESDE - 1]
 
 
-def _modelos():
+def _por_columna():
+    """Tablas donde el mes es una COLUMNA: se ponen en cero, no se borra la fila."""
     from app.models.actual_entry import ActualEntry
-    from app.models.actual_pl_line import ActualPLLine
     from app.models.belowgop_account_entry import BelowGopAccountEntry
     from app.models.cost_entry import CostEntry
     from app.models.opex_entry import OpexEntry
-    from app.models.payroll_concept_entry import PayrollConceptEntry
-    from app.models.payroll_position import PayrollPosition
     from app.models.revenue_account_entry import RevenueAccountEntry
+    return [ActualEntry, RevenueAccountEntry, OpexEntry, CostEntry,
+            BelowGopAccountEntry]
+
+
+def _por_fila():
+    """Tablas donde la fila ES el mes: se borran las de mes >= DESDE."""
+    from app.models.actual_pl_line import ActualPLLine
+    from app.models.payroll_concept_entry import PayrollConceptEntry
     from app.models.scenario_stat import ScenarioStat
-    return [ActualEntry, ActualPLLine, BelowGopAccountEntry, CostEntry,
-            OpexEntry, PayrollConceptEntry, PayrollPosition,
-            RevenueAccountEntry, ScenarioStat]
+    return [PayrollConceptEntry, ScenarioStat, ActualPLLine]
 
 
-async def _foto(db, modelos, sid: str) -> dict[str, int]:
+async def _suma(db, M, sid: str, meses: list[str]) -> float:
+    """Lo que suman esas columnas de mes en ese escenario."""
     from sqlalchemy import func, select
-    from app.models.exchange_rate import ExchangeRate
-    out = {}
-    for M in modelos + [ExchangeRate]:
-        out[M.__tablename__] = (await db.execute(
-            select(func.count()).select_from(M).where(M.scenario_id == sid))).scalar() or 0
-    return out
+    cols = [getattr(M, m) for m in meses if hasattr(M, m)]
+    if not cols:
+        return 0.0
+    expr = func.coalesce(cols[0], 0)
+    for c in cols[1:]:
+        expr = expr + func.coalesce(c, 0)
+    v = (await db.execute(select(func.coalesce(func.sum(expr), 0))
+                          .where(M.scenario_id == sid))).scalar()
+    return float(v or 0)
+
+
+async def _filas_por_mes(db, M, sid: str) -> dict[int, int]:
+    from sqlalchemy import func, select
+    res = await db.execute(select(M.month, func.count()).where(
+        M.scenario_id == sid).group_by(M.month))
+    return {m: n for m, n in res.all()}
 
 
 async def main(aplicar: bool) -> int:
     from scripts._prodenv import usar_produccion
     usar_produccion()
-    from sqlalchemy import delete as sa_delete, select
+    from sqlalchemy import delete as sa_delete, select, update as sa_update
     from app.db import SessionLocal
-    from app.models.import_registro import ImportBatch, ImportFile
     from app.models.scenario import Scenario
 
-    modelos = _modelos()
+    col_models, fila_models = _por_columna(), _por_fila()
 
     async with SessionLocal() as db:
         escen = {s.id: s for s in (await db.execute(select(Scenario).where(
             Scenario.id.in_([AC_2025, AC_2026])))).scalars()}
         for sid, etq in ((AC_2025, "ACTUAL 2025"), (AC_2026, "ACTUAL 2026")):
-            s = escen.get(sid)
-            if s is None:
-                print(f"  X no existe el escenario {etq} ({sid})")
+            if sid not in escen:
+                print(f"  X no existe {etq} ({sid})")
                 return 1
-            print(f"  {etq}: {s.type} {s.version} {s.year}  "
-                  f"actuals_through={s.actuals_through}")
+            s = escen[sid]
+            print(f"  {etq}: {s.type} {s.version} {s.year}")
 
-        antes25 = await _foto(db, modelos, AC_2025)
-        antes26 = await _foto(db, modelos, AC_2026)
+        # ── Foto de antes ───────────────────────────────────────────────────
+        antes = {}
+        for M in col_models:
+            antes[M] = {
+                "tarde26": await _suma(db, M, AC_2026, TARDE),
+                "temp26": await _suma(db, M, AC_2026, TEMPRANO),
+                "tarde25": await _suma(db, M, AC_2025, TARDE),
+                "temp25": await _suma(db, M, AC_2025, TEMPRANO),
+            }
+        filas = {M: (await _filas_por_mes(db, M, AC_2026)) for M in fila_models}
+        filas25 = {M: (await _filas_por_mes(db, M, AC_2025)) for M in fila_models}
 
-        print(f"\n{'tabla':<34}{'2025':>8}{'2026':>8}")
-        print("=" * 50)
-        for t in sorted(antes26):
-            if antes25[t] or antes26[t]:
-                print(f"  {t:<32}{antes25[t]:>8}{antes26[t]:>8}")
+        print(f"\n{'tabla':<30}{'ago-dic 2026':>16}{'es 2025?':>14}"
+              f"{'ene-jul 2026':>16}")
+        print("=" * 78)
+        for M in col_models:
+            a = antes[M]
+            igual = "SI" if abs(a["tarde26"] - a["tarde25"]) < 0.01 else "distinto"
+            print(f"  {M.__tablename__:<28}{a['tarde26']:>16,.2f}{igual:>14}"
+                  f"{a['temp26']:>16,.2f}")
+        for M in fila_models:
+            n = sum(v for m, v in filas[M].items() if m >= DESDE)
+            n25 = sum(v for m, v in filas25[M].items() if m >= DESDE)
+            keep = sum(v for m, v in filas[M].items() if m < DESDE)
+            if n or keep:
+                igual = "SI" if n == n25 else "distinto"
+                print(f"  {M.__tablename__:<28}{n:>10} filas{igual:>14}"
+                      f"{keep:>10} filas")
 
-        a_borrar = sum(antes26[M.__tablename__] for M in modelos)
-        if a_borrar == 0:
-            print("\nACTUAL 2026 ya esta vacio. No hay nada que hacer.")
+        tocar = (sum(1 for M in col_models if abs(antes[M]["tarde26"]) > 0.01)
+                 + sum(1 for M in fila_models
+                       if any(m >= DESDE for m in filas[M])))
+        if not tocar:
+            print("\nACTUAL 2026 ya esta limpio de agosto a diciembre.")
             return 0
-
-        print(f"\nSe borrarian {a_borrar} filas de ACTUAL 2026.")
-        print(f"Los {antes26['exchange_rates']} tipos de cambio del 2026 NO se tocan.")
         if not aplicar:
             print("\n(simulacion: no se escribio nada. Agregá --aplicar para hacerlo)")
             return 0
 
-        for M in modelos:
-            await db.execute(sa_delete(M).where(M.scenario_id == AC_2026))
-        # La traza: primero el archivo, despues su lote (hay FK de uno al otro).
-        await db.execute(sa_delete(ImportFile).where(ImportFile.id == FILE_2026))
-        await db.execute(sa_delete(ImportFile).where(ImportFile.scenario_id == AC_2026))
-        await db.execute(sa_delete(ImportBatch).where(ImportBatch.scenario_id == AC_2026))
+        # ── Escribir ────────────────────────────────────────────────────────
+        print()
+        for M in col_models:
+            vals = {m: 0 for m in TARDE if hasattr(M, m)}
+            await db.execute(sa_update(M).where(M.scenario_id == AC_2026).values(**vals))
+            print(f"  {M.__tablename__:<28} ago-dic -> 0")
+        for M in fila_models:
+            n = sum(v for m, v in filas[M].items() if m >= DESDE)
+            if n:
+                await db.execute(sa_delete(M).where(
+                    M.scenario_id == AC_2026, M.month >= DESDE))
+                print(f"  {M.__tablename__:<28} -{n} filas (mes >= {DESDE})")
 
-        # ── La baranda: se mide ANTES de confirmar ──────────────────────────
-        #
-        # Si el 2025 cambio aunque sea en una fila, se deshace todo. Es el unico
-        # dato que no se puede volver a fabricar con un clic.
-        desp25 = await _foto(db, modelos, AC_2025)
-        desp26 = await _foto(db, modelos, AC_2026)
+        # ── La baranda: enero-julio y el 2025 no se movieron ────────────────
         fallos = []
-        for t, n in antes25.items():
-            if desp25[t] != n:
-                fallos.append(f"ACTUAL 2025.{t}: {n} -> {desp25[t]}")
-        if desp26["exchange_rates"] != antes26["exchange_rates"]:
-            fallos.append(f"se tocaron los TC del 2026: "
-                          f"{antes26['exchange_rates']} -> {desp26['exchange_rates']}")
-        for M in modelos:
-            if desp26[M.__tablename__]:
-                fallos.append(f"ACTUAL 2026.{M.__tablename__} quedo con "
-                              f"{desp26[M.__tablename__]}")
+        for M in col_models:
+            a = antes[M]
+            t26 = await _suma(db, M, AC_2026, TARDE)
+            e26 = await _suma(db, M, AC_2026, TEMPRANO)
+            t25 = await _suma(db, M, AC_2025, TARDE)
+            e25 = await _suma(db, M, AC_2025, TEMPRANO)
+            if abs(t26) > 0.01:
+                fallos.append(f"{M.__tablename__}: ago-dic 2026 quedo en {t26:,.2f}")
+            if abs(e26 - a["temp26"]) > 0.01:
+                fallos.append(f"{M.__tablename__}: ENE-JUL 2026 cambio "
+                              f"{a['temp26']:,.2f} -> {e26:,.2f}")
+            if abs(t25 - a["tarde25"]) > 0.01 or abs(e25 - a["temp25"]) > 0.01:
+                fallos.append(f"{M.__tablename__}: ACTUAL 2025 cambio")
+        for M in fila_models:
+            ahora = await _filas_por_mes(db, M, AC_2026)
+            if any(m >= DESDE for m in ahora):
+                fallos.append(f"{M.__tablename__}: quedaron filas de mes >= {DESDE}")
+            for m, n in filas[M].items():
+                if m < DESDE and ahora.get(m, 0) != n:
+                    fallos.append(f"{M.__tablename__}: mes {m} de 2026 cambio "
+                                  f"{n} -> {ahora.get(m, 0)}")
+            if (await _filas_por_mes(db, M, AC_2025)) != filas25[M]:
+                fallos.append(f"{M.__tablename__}: ACTUAL 2025 cambio")
+
         if fallos:
             await db.rollback()
             print("\nSE DESHIZO TODO. No se escribio nada:")
@@ -160,17 +219,10 @@ async def main(aplicar: bool) -> int:
                 print(f"  X {f}")
             return 1
 
-        # El corte del forecast se mueve cuando entra un actual. Si la carga
-        # equivocada lo movio, el numero queda mal despues de borrar el dato.
-        s26 = escen[AC_2026]
-        if s26.actuals_through:
-            print(f"\n  ACTUAL 2026 tenia actuals_through={s26.actuals_through} -> 0")
-            s26.actuals_through = 0
-
         await db.commit()
-        print(f"\nLISTO. {a_borrar} filas fuera de ACTUAL 2026.")
-        print(f"ACTUAL 2025 intacto: "
-              f"{sum(desp25[M.__tablename__] for M in modelos)} filas.")
+        print("\nLISTO. Enero-julio del ACTUAL 2026, intacto:")
+        for M in col_models:
+            print(f"  {M.__tablename__:<28}{antes[M]['temp26']:>16,.2f}")
         return 0
 
 
