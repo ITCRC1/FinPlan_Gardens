@@ -49,7 +49,8 @@ from app.models.revenue_other import RevenueOther
 from app.models.revenue_entry import RevenueEntry, REVENUE_LINES
 from app.models.scenario_stat import ScenarioStat
 
-from app.engine.revenue_calculator import calculate_revenue, RevenueResult
+from app.engine.revenue_calculator import (CALENDAR_DAYS, calculate_revenue,
+                                           RevenueResult)
 from app.engine.payroll_calculator import (
     recalculate_entry, total_entry, repartir_beneficio,
 )
@@ -82,6 +83,33 @@ PAYROLL_ALL_COLS = [
 _REVENUE_LINE_TO_FIELD = {ln: ln.lower() for ln in REVENUE_LINES}
 
 
+async def _unidades_del_escenario(session, scenario: Scenario) -> int:
+    """Unidades de venta de la propiedad para este escenario.
+
+    Los tipos del hotel, con el override por escenario (`ScenarioMaster`) si
+    existe. **Un solo lugar a propósito**: es el denominador de la ocupación en
+    los dos modos de ingreso, y dos resoluciones distintas dan dos ocupaciones
+    para el mismo mes sin que ninguna avise cuál es.
+    """
+    room_types = (await session.execute(
+        select(RoomTypeConfig).where(RoomTypeConfig.hotel_id == scenario.hotel_id)
+    )).scalars().all()
+    por_id = {rt.id: int(rt.units or 0) for rt in room_types}
+    from app.models.scenario_master import ScenarioMaster
+    sm = (await session.execute(
+        select(ScenarioMaster).where(ScenarioMaster.scenario_id == scenario.id)
+    )).scalar_one_or_none()
+    if sm and sm.units_json:
+        import json
+        try:
+            for rtid, u in json.loads(sm.units_json).items():
+                if rtid in por_id:
+                    por_id[rtid] = int(u)
+        except (ValueError, TypeError):
+            pass
+    return sum(por_id.values())
+
+
 async def revenue_results_from_checkbook(
     session, scenario: Scenario
 ) -> dict[int, RevenueResult]:
@@ -89,9 +117,31 @@ async def revenue_results_from_checkbook(
 
     Used when scenario.revenue_source == 'checkbook': the user types the USD
     amount per P&L revenue line, so we read those straight into the result
-    instead of deriving them from rate cards × occupancy. Room KPIs (available /
-    occupied / guests) come from ScenarioStat; ADR / RevPAR / occupancy% derive
-    from them on read (RevenueResult properties).
+    instead of deriving them from rate cards × occupancy. Occupied nights and
+    guests come from ScenarioStat; ADR / RevPAR / occupancy% derive from them on
+    read (RevenueResult properties).
+
+    ## ⚠️ Las noches DISPONIBLES se calculan; no se leen de `ScenarioStat`
+
+    Leerlas de ahí hacía un **círculo cerrado**: `sincronizar_noches` escribe
+    `ScenarioStat` desde el resultado, y el resultado las leía de
+    `ScenarioStat`. El número se confirmaba a sí mismo para siempre, y el master
+    data de la propiedad **no entraba nunca**.
+
+    Medido el 2026-10-16 en Ojochal: el owner había corregido el inventario a
+    **11 unidades de venta** y los cinco escenarios en modo `checkbook` seguían
+    con **16 por día** —las habitaciones, no las unidades—, o sea 5.840 noches
+    al año contra 4.015. Recalcular no lo arreglaba: lo volvía a escribir igual.
+
+    Lo que se rompe no es la plata —ésa sale del checkbook— sino **todo lo que
+    se divide por noches disponibles**: ocupación, RevPAR, TRevPAR y el punto de
+    equilibrio. Y se rompe para el lado peligroso: con el denominador inflado la
+    ocupación sale **más baja** de lo que es.
+
+    Ahora salen de `unidades × días del mes`, que es exactamente de donde salen
+    en el modo `drivers` (`revenue_calculator`). Los dos caminos tienen que
+    tener el MISMO denominador: si difieren, cambiar de modo cambia la ocupación
+    sin que se haya movido una noche.
     """
     sid = scenario.id
     entries = (await session.execute(
@@ -103,6 +153,11 @@ async def revenue_results_from_checkbook(
         )).scalars().all()
     }
 
+    # Las unidades de la propiedad, con el override del escenario si lo hay.
+    # Mismo origen y mismo orden que en `load_revenue_results`: si acá se
+    # resolvieran distinto, los dos modos darían ocupaciones distintas.
+    unidades = await _unidades_del_escenario(session, scenario)
+
     results: dict[int, RevenueResult] = {}
     for month in range(1, 13):
         r = RevenueResult(month=month, year=scenario.year)
@@ -112,9 +167,9 @@ async def revenue_results_from_checkbook(
                 setattr(r, field, e.get_month(month) or ZERO)
         st = stats.get(month)
         if st is not None:
-            r.rooms_available = int(st.rooms_available or 0)
             r.rooms_occupied = st.rooms_occupied or ZERO
             r.guests = st.guests or ZERO
+        r.rooms_available = unidades * CALENDAR_DAYS[month - 1]
         results[month] = r
     return results
 
@@ -162,6 +217,10 @@ async def load_revenue_results(session, scenario: Scenario) -> dict[int, Revenue
     )).scalars().all()
     room_type_units = {rt.id: rt.units for rt in room_types}
     # Override de unidades por escenario (master data por año), si existe.
+    # ⚠️ La MISMA resolución que usa `_unidades_del_escenario` para el modo
+    # checkbook. Acá queda por tipo porque `calculate_revenue` reparte por tipo;
+    # allá alcanza con el total. Si alguna de las dos cambia, la otra también:
+    # `test_el_mismo_denominador.py` compara las dos y falla si se separan.
     from app.models.scenario_master import ScenarioMaster
     sm = (await session.execute(
         select(ScenarioMaster).where(ScenarioMaster.scenario_id == scenario.id)
