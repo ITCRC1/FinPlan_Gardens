@@ -18,6 +18,15 @@ salen del inventario.
 Ésos ya calculan las disponibles desde las unidades en cada recálculo. Meterles
 mano sería escribir sobre algo que se va a recalcular igual.
 
+## ⚠️ Tampoco toca los ACTUAL
+
+En un presupuesto las disponibles son un supuesto y salen del inventario. En un
+ACTUAL son una **medición**: cuántas unidades estuvieron realmente a la venta.
+En Ojochal 2025 van de 7,2 a 11,9 por día porque las villas fueron abriendo.
+Aplanarlas al inventario de hoy contaría como disponible una villa que todavía
+no existía, y la ocupación de un año cerrado bajaría —de 30,8 % a 28,0 %— sin
+que se hubiera movido una noche vendida.
+
 Uso:
     python -m scripts.corregir_noches_disponibles            # ensayo
     python -m scripts.corregir_noches_disponibles --aplicar
@@ -46,6 +55,10 @@ async def main(aplicar: bool) -> int:
         for esc in sorted(escenarios, key=lambda s: (s.year, s.version)):
             modo = getattr(esc, "revenue_source", "drivers")
             if modo != "checkbook":
+                continue
+            if (getattr(esc, "type", "") or "").upper() == "ACTUAL":
+                print(f"  · {esc.year} {esc.type:<9} {esc.version:<26} "
+                      f"ACTUAL: lo medido no se toca")
                 continue
             unidades = await _unidades_del_escenario(db, esc)
             stats = {s.month: s for s in (await db.execute(select(ScenarioStat).where(

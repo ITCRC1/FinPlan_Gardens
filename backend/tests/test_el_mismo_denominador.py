@@ -37,7 +37,27 @@ def test_el_checkbook_NO_lee_las_disponibles_de_las_estadisticas():
 
 
 def test_el_checkbook_las_calcula_de_unidades_por_dias():
-    assert "r.rooms_available = unidades * CALENDAR_DAYS[month - 1]" in CHECKBOOK
+    assert "unidades * CALENDAR_DAYS[month - 1]" in CHECKBOOK
+
+
+def test_un_ACTUAL_conserva_lo_que_midio():
+    """En un presupuesto las disponibles son un supuesto; en un ACTUAL son un
+    hecho.
+
+    En Ojochal 2025 van de 7,2 a 11,9 unidades por dia porque las villas fueron
+    abriendo. Aplanarlas al inventario de hoy contaria como disponible una villa
+    que todavia no existia, y la ocupacion de un año cerrado bajaria —de 30,8 %
+    a 28,0 %— sin que se hubiera movido una noche vendida.
+    """
+    assert "es_actual" in CHECKBOOK
+    assert 'ACTUAL' in CHECKBOOK
+    assert "medidas if (es_actual and medidas)" in CHECKBOOK
+
+
+def test_un_ACTUAL_sin_medicion_cae_al_inventario():
+    """Sin estadistica, o con la estadistica en cero, no hay nada que
+    preservar: usar ese cero seria dividir por cero en la ocupacion."""
+    assert "es_actual and medidas" in CHECKBOOK
 
 
 def test_las_ocupadas_y_los_pax_SI_salen_de_las_estadisticas():

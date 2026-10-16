@@ -142,6 +142,20 @@ async def revenue_results_from_checkbook(
     en el modo `drivers` (`revenue_calculator`). Los dos caminos tienen que
     tener el MISMO denominador: si difieren, cambiar de modo cambia la ocupación
     sin que se haya movido una noche.
+
+    ## ⚠️ …salvo en un ACTUAL, donde son una MEDICIÓN
+
+    En un presupuesto las disponibles son un supuesto y salen del inventario. En
+    un **ACTUAL** son un hecho: cuántas unidades estuvieron realmente a la venta
+    ese mes. En Ojochal 2025 van de **7,2 a 11,9 por día** porque las villas
+    fueron abriendo, y en 2026 llegan a 12. Aplanarlas al inventario de hoy
+    contaría como disponible una villa que todavía no existía, y la ocupación de
+    un año cerrado bajaría —2025 pasaba de 30,8 % a 28,0 %— sin que se hubiera
+    movido una noche vendida.
+
+    Por eso el ACTUAL conserva lo medido **cuando lo hay**: si el mes no trae
+    estadística o viene en cero, no hay medición que preservar y se cae al
+    inventario, que es mejor que dividir por cero.
     """
     sid = scenario.id
     entries = (await session.execute(
@@ -157,6 +171,8 @@ async def revenue_results_from_checkbook(
     # Mismo origen y mismo orden que en `load_revenue_results`: si acá se
     # resolvieran distinto, los dos modos darían ocupaciones distintas.
     unidades = await _unidades_del_escenario(session, scenario)
+    #: En un ACTUAL las disponibles son una MEDICIÓN, no un supuesto.
+    es_actual = (getattr(scenario, "type", "") or "").upper() == "ACTUAL"
 
     results: dict[int, RevenueResult] = {}
     for month in range(1, 13):
@@ -169,7 +185,9 @@ async def revenue_results_from_checkbook(
         if st is not None:
             r.rooms_occupied = st.rooms_occupied or ZERO
             r.guests = st.guests or ZERO
-        r.rooms_available = unidades * CALENDAR_DAYS[month - 1]
+        medidas = int(getattr(st, "rooms_available", 0) or 0) if st else 0
+        r.rooms_available = medidas if (es_actual and medidas) else (
+            unidades * CALENDAR_DAYS[month - 1])
         results[month] = r
     return results
 
