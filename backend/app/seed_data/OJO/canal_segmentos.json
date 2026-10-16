@@ -1,0 +1,13 @@
+{
+  "_nota": "Los ocho segmentos de venta de Ojochal, en el orden del libro del owner. CPL no factura (ocupa villa y no genera ingreso): lo declara genera_ingreso, no una lista en el motor. El seed agrega lo que falta y NO pisa lo que ya este cargado.",
+  "segmentos": [
+   {"code": "AGENCIAS",      "nombre": "Agencias",                        "genera_ingreso": true,  "orden": 1},
+   {"code": "DIRECT_WEB",    "nombre": "Direct (website / Rsv)",          "genera_ingreso": true,  "orden": 2},
+   {"code": "CRC_DIRECT",    "nombre": "Costa Rica Collection direct",    "genera_ingreso": true,  "orden": 3},
+   {"code": "DIRECT_PHONE",  "nombre": "Direct — phone / email / social", "genera_ingreso": true,  "orden": 4},
+   {"code": "DIRECT_GROUPS", "nombre": "Direct groups",                   "genera_ingreso": true,  "orden": 5},
+   {"code": "LONG_TERM",     "nombre": "Long term rentals",               "genera_ingreso": true,  "orden": 6},
+   {"code": "OTA",           "nombre": "OTA's",                           "genera_ingreso": true,  "orden": 7},
+   {"code": "CPL",           "nombre": "CPL | Uso casa | Canjes",         "genera_ingreso": false, "orden": 8}
+  ]
+}

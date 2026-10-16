@@ -171,7 +171,113 @@ async def load_revenue_results(session, scenario: Scenario) -> dict[int, Revenue
             other_revenues=[ot for ot in other_revenues if ot.month == month],
             room_type_units=room_type_units,
         )
+    # ⚠️ Rooms PRIMERO. A&B y Spa se calculan sobre los pax, y los pax salen
+    # de las noches — que en el modelo por canal las pone este paso. Al revés,
+    # quedarían sobre los pax del modelo viejo.
+    await aplicar_canales_rooms(session, scenario, results, rate_cards)
     return results
+
+
+async def aplicar_canales_rooms(session, scenario, results, rate_cards) -> bool:
+    """ROOMS desde los segmentos de venta, cuando el escenario lo pide.
+
+    Owner, 2026-10-15: *«no tenemos historial por tipo de habitación como sí
+    tengo en FinPlan CWL… Sales and Marketing me proponen hacerlo de otra
+    manera, por canal»*.
+
+    ## Los dos modelos y el interruptor
+
+    El camino normal saca Rooms de `rack × ocupación × factor de canal`, y eso
+    necesita historia POR TIPO DE HABITACIÓN para calibrarse. Ojochal no la
+    tiene y no la va a tener hacia atrás. El modelo por canal pide lo que el
+    PMS sí sabe dar: noches por segmento.
+
+    **La condición es `scenario.rooms_source`, no la propiedad ni el año.** Sin
+    `'canales'` esto NO toca nada.
+
+    ## En Ojochal la tarifa se DERIVA antes de usarse
+
+    Si el escenario tiene tarifario RAC cargado, las tarifas de
+    `canal_rooms_entries` se recalculan desde él antes de sumar — así editar un
+    RAC o una comisión se ve en el P&L sin tener que tocar la grilla de noches.
+    Sin tarifario, se usa la tarifa guardada, que es el camino de Oxygen.
+
+    ## Los pax se reescalan, no se pisan
+
+    A&B y Spa se calculan sobre `guests`. Si cambian las noches y los pax no, el
+    hotel queda con la ocupación de un modelo y los comensales del otro: dos
+    verdades sobre el mismo mes.
+
+    ## Las noches disponibles NO se tocan
+
+    Salen de unidades × días y son las mismas en los dos modelos. Recalcularlas
+    acá abriría la puerta a que los dos caminos difieran en el denominador de la
+    ocupación, que es de los errores que cuadran solos.
+    """
+    if getattr(scenario, "rooms_source", "tarifas") != "canales":
+        return False
+
+    from app.models.canal_rooms import CanalRoomsEntry, CanalSegmento, calcular_mes
+    from app.models.rack_rooms import RackComision, RackTemporada, RackVilla
+    from app.engine.rack_tarifa import derivar_mes
+
+    segs = (await session.execute(select(CanalSegmento).where(
+        CanalSegmento.hotel_id == scenario.hotel_id,
+        CanalSegmento.activo.is_(True)))).scalars().all()
+    if not segs:
+        return False
+    genera = {x.code: bool(x.genera_ingreso) for x in segs}
+
+    filas = (await session.execute(select(CanalRoomsEntry).where(
+        CanalRoomsEntry.scenario_id == scenario.id))).scalars().all()
+    if not filas:
+        return False
+    por_mes: dict[int, list] = {}
+    for f in filas:
+        por_mes.setdefault(int(f.month), []).append(f)
+
+    # El tarifario, si lo hay. Las tres tablas tienen que estar: con villas y
+    # sin temporadas el RAC saldría en cero y el ingreso con él.
+    villas = (await session.execute(select(RackVilla).where(
+        RackVilla.scenario_id == scenario.id))).scalars().all()
+    temps = (await session.execute(select(RackTemporada).where(
+        RackTemporada.scenario_id == scenario.id))).scalars().all()
+    coms = {c.segmento_code: (c.comision_pct, bool(c.tarifa_propia))
+            for c in (await session.execute(select(RackComision).where(
+                RackComision.scenario_id == scenario.id))).scalars()}
+    hay_tarifario = bool(villas and temps)
+
+    for mes, r in results.items():
+        delmes = por_mes.get(mes, [])
+        if hay_tarifario and delmes:
+            d = derivar_mes(
+                villas, temps, coms,
+                {f.segmento_code: f.noches for f in delmes},
+                scenario.year, mes,
+                tarifas_propias={f.segmento_code: f.tarifa for f in delmes})
+            for f in delmes:
+                s = d["segmentos"].get(f.segmento_code)
+                if s:
+                    f.tarifa, f.ingreso = s["tarifa"], s["ingreso"]
+
+        calc = calcular_mes(delmes, genera, r.rooms_available)
+        # pax por noche: lo que declaran las tarifas del mes; si el mes no tiene
+        # tarifas, lo que ya traía el resultado; y si no, 2.
+        rc_mes = [rc for rc in rate_cards if rc.month == mes]
+        if rc_mes:
+            ratio = sum((Decimal(str(rc.pax_per_room or 0)) for rc in rc_mes),
+                        Decimal("0")) / Decimal(len(rc_mes))
+        elif r.rooms_occupied:
+            ratio = Decimal(str(r.guests or 0)) / Decimal(str(r.rooms_occupied))
+        else:
+            ratio = Decimal("2")
+
+        r.rooms = Decimal(str(calc["ingreso"])).quantize(Decimal("0.01"))
+        # ⚠️ Las noches de CORTESÍA ocupan la villa: van a la ocupación. Las
+        # que no generan ingreso quedan fuera del ADR por `calcular_mes`, no acá.
+        r.rooms_occupied = Decimal(str(calc["noches_totales"]))
+        r.guests = (r.rooms_occupied * ratio).quantize(Decimal("0.01"))
+    return True
 
 
 def revenue_line_dict(r: RevenueResult) -> dict[str, Decimal]:

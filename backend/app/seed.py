@@ -196,6 +196,21 @@ async def seed():
     except Exception as e:
         print(f"  seed de canales omitido: {e}")
 
+    # Los segmentos de venta del modelo de Rooms por canal. Agrega lo que
+    # falta y NO pisa lo que el owner edite: el JSON es el arranque, la base
+    # es la verdad desde que alguien la toca.
+    try:
+        from app.seed_canal_segmentos import seed_segmentos
+        async with SessionLocal() as db:
+            r = await seed_segmentos(db)
+            await db.commit()
+        if r.get("sin_semilla"):
+            print("  canal_segmentos: esta propiedad no trae semilla propia")
+        else:
+            print(f"  canal_segmentos: {r['total']} ({r['nuevos']} nuevos)")
+    except Exception as e:
+        print(f"  seed de segmentos omitido: {e}")
+
     # Costos para negociación de grupos: el mapa de temporadas y los
     # parámetros del modelo. No pisa lo que el owner edite en la app.
     try:

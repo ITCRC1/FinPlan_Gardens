@@ -182,6 +182,12 @@ INVENTARIO: list[Dataset] = [
     Dataset("canales_comerciales", "canales_comerciales", PROPIEDAD,
             "seed_data/<HOTEL_ID>/canales_comerciales.json", "seed_canales_comerciales",
             _json_de_la_propiedad("canales_comerciales.json", "canales")),
+    # Los segmentos de venta del modelo de Rooms por canal. Como los canales
+    # comerciales: el JSON es el ARRANQUE y la base manda desde que el owner
+    # toca algo, asi que el seed agrega lo que falta y no pisa.
+    Dataset("canal_segmentos", "canal_segmentos", PROPIEDAD,
+            "seed_data/<HOTEL_ID>/canal_segmentos.json", "seed_canal_segmentos",
+            _json_de_la_propiedad("canal_segmentos.json", "segmentos")),
     Dataset("cfg_tarifa_rack", "cfg_tarifa_rack", PROPIEDAD,
             "seed_data/<HOTEL_ID>/rack_rates.json", "seed_costos_grupos",
             _json_de_la_propiedad("rack_rates.json", "tarifas")),
@@ -203,6 +209,7 @@ INVENTARIO: list[Dataset] = [
 # ninguna carpeta de propiedad (el caso de una instalación recién clonada) igual
 # sabe qué preguntar.
 SEMILLAS_CONOCIDAS = (
+    "canal_segmentos.json",
     "canales.json",
     "canales_comerciales.json",
     "canales_mix.json",
