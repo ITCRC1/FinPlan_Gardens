@@ -122,7 +122,23 @@ async def revenue_results_from_checkbook(
 async def load_revenue_results(session, scenario: Scenario) -> dict[int, RevenueResult]:
     """Compute RevenueResult for all 12 months (mirrors revenue_api)."""
     if getattr(scenario, "revenue_source", "drivers") == "checkbook":
-        return await revenue_results_from_checkbook(session, scenario)
+        # ⚠️ El modelo por canal se aplica TAMBIÉN acá.
+        #
+        # Esta rama hacía `return` directo y se saltaba `aplicar_canales_rooms`.
+        # El efecto no era un error: era un INTERRUPTOR MUERTO. Un escenario en
+        # modo `checkbook` podía quedar con `rooms_source='canales'`, la
+        # pantalla decía «conectado», y el P&L seguía mostrando la línea ROOMS
+        # del checkbook — con el total cuadrando consigo mismo.
+        #
+        # La condición de este modelo es `rooms_source`, y nada más. Es la misma
+        # regla que ya está escrita en `_ingreso_de_driver`: «un departamento no
+        # debería tener que saber en qué modo está su escenario».
+        #
+        # Sin `rate_cards` —el modo checkbook no las usa— el ratio de pax sale
+        # de los pax y noches que ya traía el mes.
+        resultados = await revenue_results_from_checkbook(session, scenario)
+        await aplicar_canales_rooms(session, scenario, resultados, [])
+        return resultados
     sid = scenario.id
     channels = (await session.execute(
         select(SalesChannelConfig).where(SalesChannelConfig.scenario_id == sid)
