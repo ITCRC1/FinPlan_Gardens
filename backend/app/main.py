@@ -47,6 +47,7 @@ from app.api.ingreso_detalle_api import router as ingreso_detalle_router
 from app.api.estadisticas_api import router as estadisticas_router
 from app.api.checkbook_api import router as checkbook_router
 from app.api.canales_api import router as canales_router
+from app.api.rack_rooms_api import router as rack_rooms_router
 from app.api.semillas_api import router as semillas_router
 from app.api.mixer_api import router as mixer_router
 from app.api.chequeo_api import router as chequeo_router
@@ -194,6 +195,7 @@ app.include_router(ingreso_detalle_router, prefix="/api", dependencies=_guard)
 app.include_router(estadisticas_router, prefix="/api", dependencies=_guard)
 app.include_router(checkbook_router, prefix="/api", dependencies=_guard)
 app.include_router(canales_router, prefix="/api", dependencies=_guard)
+app.include_router(rack_rooms_router, prefix="/api", dependencies=_guard)
 app.include_router(semillas_router, prefix="/api", dependencies=_guard)
 app.include_router(mixer_router, prefix="/api", dependencies=_guard)
 app.include_router(chequeo_router, prefix="/api", dependencies=_guard)

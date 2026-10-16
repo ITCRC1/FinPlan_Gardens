@@ -65,18 +65,17 @@ from app.db import Base
 
 ZERO = Decimal("0")
 
-#: Los ocho segmentos del libro de Sales, en su orden. `genera_ingreso=False`
-#: saca al segmento del denominador del ADR — ver el docstring del módulo.
-SEGMENTOS_SEMILLA: tuple[tuple[str, str, bool], ...] = (
-    ("AGENCIAS",      "Agencias",                       True),
-    ("DIRECT_WEB",    "Direct (website / Rsv)",         True),
-    ("CRC_DIRECT",    "Costa Rica Collection direct",   True),
-    ("DIRECT_PHONE",  "Direct — phone / email / social", True),
-    ("DIRECT_GROUPS", "Direct groups",                  True),
-    ("EXEC_DIRECT",   "Executive personal direct",      True),
-    ("OTA",           "OTA's",                          True),
-    ("CPL",           "CPL | Uso casa | Canjes",        False),
-)
+#: ⚠️ **Acá NO vive la lista de segmentos.** Está en
+#: `seed_data/<HOTEL_ID>/canal_segmentos.json`, y la siembra
+#: `seed_canal_segmentos`. Oxygen sí la tiene escrita en su modelo, y al portar
+#: el archivo vino con ella: ocho códigos que NO son los de Ojochal
+#: (`EXEC_DIRECT` donde acá va `LONG_TERM`). Nadie la usaba, así que no rompía
+#: nada — hasta el día que alguien la importara «porque estaba ahí» y la
+#: propiedad arrancara con un canal ajeno y sin el de alquiler largo.
+#:
+#: Una propiedad sin semilla se queda SIN segmentos, a propósito: heredar los
+#: de otra da un mix ajeno y un ingreso equivocado que igual cuadra consigo
+#: mismo.
 
 
 class CanalSegmento(Base):

@@ -754,6 +754,37 @@ MENSAJES: dict[str, dict[str, str]] = {
     "nonop.sin_filas_validas": {
         "es": "No se encontraron filas válidas.",
         "en": "No valid rows were found."},
+    # ── Rack Rooms: el tarifario y la grilla de canales ──────────────────────
+    "canal.segmento_desconocido": {
+        "es": "El segmento «{code}» no está en el catálogo de esta propiedad.",
+        "en": "Segment “{code}” is not in this property's catalog."},
+    "canal.noches_negativas": {
+        "es": "El segmento «{code}» tiene noches negativas en el mes {mes}.",
+        "en": "Segment “{code}” has negative nights in month {mes}."},
+    "canal.fuente_desconocida": {
+        "es": "Modelo de Rooms desconocido: «{fuente}». Los válidos son: {validas}.",
+        "en": "Unknown Rooms model: “{fuente}”. Valid ones are: {validas}."},
+    "canal.recalcular_despues": {
+        "es": "El modelo quedó conectado. El P&L cambia en el próximo recálculo.",
+        "en": "The model is now connected. The P&L changes on the next recalculation."},
+    "rack.unidades_negativas": {
+        "es": "La villa «{villa}» tiene unidades negativas.",
+        "en": "Villa “{villa}” has negative units."},
+    "rack.villa_repetida": {
+        "es": "La villa «{villa}» aparece dos veces. Cada villa va una sola vez: repetida, su RAC pesaría doble en el ponderado.",
+        "en": "Villa “{villa}” appears twice. Each villa goes once: repeated, its RAC would count double in the weighted average."},
+    "rack.temporada_desconocida": {
+        "es": "Temporada desconocida: «{temporada}». Las válidas son: {validas}.",
+        "en": "Unknown season: “{temporada}”. Valid ones are: {validas}."},
+    "rack.rango_invertido": {
+        "es": "La temporada «{temporada}» termina antes de empezar.",
+        "en": "Season “{temporada}” ends before it starts."},
+    "rack.temporadas_traslapadas": {
+        "es": "«{a}» y «{b}» se traslapan desde el {desde}. Un día en dos temporadas se cuenta dos veces y el RAC del mes sale inflado.",
+        "en": "“{a}” and “{b}” overlap from {desde}. A day in two seasons is counted twice and the month's RAC comes out inflated."},
+    "rack.comision_fuera_de_rango": {
+        "es": "La comisión de «{code}» es {pct}. Tiene que estar entre 0 y 1 (0.20 = 20%): con 1 el ingreso queda en cero y por encima se vuelve negativo.",
+        "en": "The commission for “{code}” is {pct}. It must be between 0 and 1 (0.20 = 20%): at 1 revenue becomes zero, and above that it turns negative."},
     "rooms.reparto_supera_100": {
         "es": "El mes {mes} reparte {pct}% del costo de Rooms. No se puede pasar del 100%: lo que no se asigna es lo que le queda a Rooms Standard.",
         "en": "Month {mes} allocates {pct}% of the Rooms cost. It cannot go above 100%: whatever is not allocated is what stays with Rooms Standard."},

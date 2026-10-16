@@ -65,6 +65,24 @@ def dias_por_temporada(anio: int, mes: int, temporadas) -> dict[str, int]:
     return out
 
 
+def traslape(rangos):
+    """El primer par de rangos que se pisa, o `None` si ninguno.
+
+    `rangos` — iterable de `(desde, hasta, temporada)`.
+
+    ⚠️ **El hueco y el traslape no se ven igual.** `dias_sin_temporada` denuncia
+    el día que no cae en ninguna temporada, porque el denominador lo cuenta y
+    el numerador no. El día que cae en DOS no deja rastro: se suma dos veces,
+    el RAC del mes sale inflado y el total cuadra consigo mismo. Por eso esto
+    se revisa al GUARDAR, antes de que el número exista.
+    """
+    orden = sorted(rangos)
+    for (d1, h1, t1), (d2, h2, t2) in zip(orden, orden[1:]):
+        if d2 <= h1:
+            return (t1, t2, d2)
+    return None
+
+
 def dias_del_mes(anio: int, mes: int) -> int:
     return calendar.monthrange(anio, mes)[1]
 
