@@ -449,20 +449,22 @@ async def _load_revenue_data(scenario_id: str, db: AsyncSession) -> dict:
 
 
 def _revenue_result_to_dict(r: RevenueResult) -> dict:
+    """⚠️ Las líneas se DERIVAN de `revenue_line_dict`, no se escriben a mano.
+
+    Tenía ONCE escritas una por una y el motor ya tenía CATORCE: faltaban las
+    tres del Club (`club`, `club_actividad`, `club_visitantes`). Nadie lo veía
+    porque `total_revenue` SÍ las sumaba —ese se calcula aparte—, así que el
+    cuadro cerraba contra un total que no era la suma de sus filas.
+
+    Es el mismo defecto que dejó al Club fuera del motor de drivers, y se
+    arregla igual: la lista sale de UN solo lugar.
+    """
+    from app.engine.recalculate import revenue_line_dict
+
     return {
         "month": r.month,
         "year": r.year,
-        "rooms": str(r.rooms),
-        "food": str(r.food),
-        "beverage": str(r.beverage),
-        "activities": str(r.activities),
-        "transport": str(r.transport),
-        "sustainability": str(r.sustainability),
-        "spa": str(r.spa),
-        "retail": str(r.retail),
-        "fnb_misc": str(r.fnb_misc),
-        "innoceana": str(r.innoceana),
-        "laundry": str(r.laundry),
+        **{k: str(v) for k, v in revenue_line_dict(r).items()},
         "total_package": str(r.total_package),
         "total_revenue": str(r.total_revenue),
         "rooms_available": r.rooms_available,
@@ -564,56 +566,41 @@ async def import_revenue_data(
 
 @router.get("/scenarios/{scenario_id}/revenue/monthly/")
 async def get_monthly_revenue(scenario_id: str, db: AsyncSession = Depends(get_db)):
-    """Return revenue results for all 12 months.
+    """Los doce meses de ingreso, por el MISMO camino que el P&L.
 
-    Respects scenario.revenue_source: 'checkbook' reads the direct RevenueEntry
-    amounts; 'drivers' (default) derives revenue from rate cards × occupancy.
+    ## ⚠️ Esta función tenía su propio motor, y por eso el dato no viajaba
+
+    Owner, 2026-10-16: *«debes hacer tablas estándares porque después todo esto
+    hay que consolidarlo en Hotel Consolida»*. Esta es la puerta de solo
+    lectura que Hotel Consolidation consume, y calculaba el ingreso con
+    `calculate_annual_revenue` —que repite `calculate_revenue` mes a mes y
+    **no aplica ninguno de los drivers** que viven en `load_revenue_results`.
+
+    Medido ese día contra el motor del P&L, en producción:
+
+        BUDGET Working 2026    API 0,00  vs  motor 397.039,20
+        BUDGET Working 2027    API 0,00  vs  motor 295.455,98
+
+    O sea: el consolidado mostraba **Ojochal en cero** mientras el P&L mostraba
+    $295 mil. **Nada fallaba** —el total cuadraba consigo mismo— y por eso
+    podía quedarse así indefinidamente. En Oxygen el mismo defecto escondía
+    $1.107.238 (ver `MODELO_ROOMS_POR_CANAL.md` §7).
+
+    Hoy usa `load_revenue_results`, que es el ÚNICO cargador: respeta
+    `revenue_source` —la rama del checkbook la tiene adentro, por eso acá ya no
+    está— y aplica los drivers. Hay prueba que falla si alguien vuelve a abrir
+    un segundo motor.
     """
+    from app.engine.recalculate import load_revenue_results
+
     scenario = await _get_scenario_or_404(scenario_id, db)
-
-    if getattr(scenario, "revenue_source", "drivers") == "checkbook":
-        from app.engine.recalculate import revenue_results_from_checkbook
-        results_by_month = await revenue_results_from_checkbook(db, scenario)
-        results = [results_by_month[m] for m in range(1, 13)]
-        annual_total = sum(r.total_revenue for r in results)
-        return {
-            "scenario_id": scenario_id,
-            "year": scenario.year,
-            "source": "checkbook",
-            "months": [_revenue_result_to_dict(r) for r in results],
-            "annual_total_revenue": str(annual_total),
-        }
-
-    data = await _load_revenue_data(scenario_id, db)
-
-    room_type_units = {rt.id: rt.units for rt in data["room_types"]}
-
-    # Group by month
-    rates_by_month = {}
-    for rc in data["rate_cards"]:
-        rates_by_month.setdefault(rc.month, []).append(rc)
-    occ_by_month = {}
-    for ob in data["occupancies"]:
-        occ_by_month.setdefault(ob.month, []).append(ob)
-    other_by_month = {}
-    for ot in data["other_revenues"]:
-        other_by_month.setdefault(ot.month, []).append(ot)
-
-    results = calculate_annual_revenue(
-        year=scenario.year,
-        rate_cards_by_month=rates_by_month,
-        occ_by_month=occ_by_month,
-        channels=data["channels"],
-        pkg_configs=data["pkg_configs"],
-        other_by_month=other_by_month,
-        room_type_units=room_type_units,
-    )
-
+    por_mes = await load_revenue_results(db, scenario)
+    results = [por_mes[m] for m in range(1, 13)]
     annual_total = sum(r.total_revenue for r in results)
     return {
         "scenario_id": scenario_id,
         "year": scenario.year,
-        "source": "drivers",
+        "source": getattr(scenario, "revenue_source", "drivers"),
         "months": [_revenue_result_to_dict(r) for r in results],
         "annual_total_revenue": str(annual_total),
     }
