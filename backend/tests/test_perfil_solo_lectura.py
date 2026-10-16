@@ -50,7 +50,18 @@ def test_todo_router_de_datos_lleva_la_guarda_completa():
     ]
     # Los públicos a propósito: login, el consolidado (tiene su propia llave)
     # y los que declaran su guarda aparte.
-    permitidos = ("auth_router", "consolidado_router")
+    #
+    # ⚠️ La lista es EXPLÍCITA y no un patrón tipo `consolidado_*`: un patrón
+    # admitiría en silencio al próximo router que alguien nombre parecido, que
+    # es justo lo que esta prueba existe para impedir. Agregar uno acá tiene
+    # que costar pensarlo.
+    #
+    # `consolidado_rooms_router` entró el 2026-10-16 con la superficie de Rooms
+    # para Hotel Consolidation. Es público por la misma razón que el otro: sus
+    # cuatro rutas llevan `Depends(lector_del_consolidado)`, o sea la llave de
+    # solo lectura `X-Api-Key` o una sesión normal. Verificado ruta por ruta,
+    # no por su nombre.
+    permitidos = ("auth_router", "consolidado_router", "consolidado_rooms_router")
     for ln in sin_guarda:
         assert any(p in ln for p in permitidos), (
             f"router montado sin _guard y no está en la lista de públicos: {ln}")
