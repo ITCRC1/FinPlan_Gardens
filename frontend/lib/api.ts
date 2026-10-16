@@ -5281,3 +5281,117 @@ export async function setPaxGrid(
   return api.put(
     `/scenarios/${encodeURIComponent(scenarioId)}/revenue/pax-grid/`, { celdas });
 }
+
+
+// ── Planning → Rack Rooms Calculation ────────────────────────────────────────
+//
+// El modelo de Rooms de Ojochal: se digitan unidades, RAC por temporada,
+// comisiones y noches; la tarifa y el ingreso se DERIVAN. Todo lo que devuelve
+// el backend viene como texto para no perder centavos en el float de JS — los
+// montos de este sistema se comparan contra un libro que cierra al centavo.
+
+export interface RackVillaFila {
+  villa: string; unidades: number;
+  rac_pico: string; rac_alta: string; rac_verde: string; orden: number;
+}
+export interface RackTemporadaFila {
+  temporada: string; desde: string; hasta: string;
+}
+export interface RackComisionFila {
+  segmento_code: string; comision_pct: string;
+  /** Long term no tiene RAC: su tarifa se digita mes a mes. */
+  tarifa_propia: boolean;
+}
+export interface RackSegmento {
+  code: string; nombre: string; orden: number;
+  /** `false` = ocupa villa y NO entra al denominador del ADR (CPL, canjes). */
+  genera_ingreso: boolean;
+}
+export interface RackSegmentoMes {
+  noches: string; tarifa: string; ingreso: string;
+  ocupacion: string; ingreso_rack: string;
+}
+export interface RackMes {
+  month: number; dias: number;
+  dias_por_temporada: Record<string, number>;
+  /** El CONTROL del libro: tiene que dar 0. Un día sin temporada diluye el RAC. */
+  dias_sin_temporada: number;
+  rac_ponderado: string;
+  rac_por_villa: Record<string, string>;
+  disponibles: string; noches_ingreso: string; noches_totales: string;
+  ingreso: string; ocupacion: string; ocupacion_total: string;
+  adr: string; revpar: string;
+  segmentos: Record<string, RackSegmentoMes>;
+}
+export interface RackTotal {
+  disponibles: string; noches_ingreso: string; noches_totales: string;
+  ingreso: string; ingreso_rack: string;
+  ocupacion: string; ocupacion_total: string; adr: string; revpar: string;
+  segmentos: Record<string, { noches: string; ingreso: string }>;
+}
+export interface RackRoomsResponse {
+  scenario_id: string; year: number; locked: boolean;
+  rooms_source: string; conectado: boolean;
+  /** `false` = faltan villas o temporadas; sin eso el RAC daría cero. */
+  hay_tarifario: boolean;
+  villas: RackVillaFila[];
+  temporadas: RackTemporadaFila[];
+  comisiones: RackComisionFila[];
+  segmentos: RackSegmento[];
+  entradas: { segmento_code: string; month: number;
+              noches: string; tarifa: string; ingreso: string }[];
+  meses: RackMes[];
+  total: RackTotal;
+  controles: {
+    /** Las del hotel son el denominador; las del tarifario ponderan el RAC. */
+    unidades: { hotel: number; tarifario: number; coinciden: boolean };
+    meses_sin_temporada: number[];
+    segmentos_sin_comision: string[];
+  };
+}
+
+export async function getRackRooms(scenarioId: string): Promise<RackRoomsResponse> {
+  return api.get<RackRoomsResponse>(
+    `/rack-rooms/${encodeURIComponent(scenarioId)}/`);
+}
+
+/** ⚠️ REEMPLAZA el cuadro: una villa que no venga en la lista se borra. */
+export async function saveRackVillas(
+  scenarioId: string, filas: RackVillaFila[],
+): Promise<RackRoomsResponse> {
+  return api.put(`/rack-rooms/${encodeURIComponent(scenarioId)}/villas/`, filas);
+}
+
+/** ⚠️ REEMPLAZA los rangos. Una temporada puede traer varios (Pico son dos). */
+export async function saveRackTemporadas(
+  scenarioId: string, filas: RackTemporadaFila[],
+): Promise<RackRoomsResponse> {
+  return api.put(`/rack-rooms/${encodeURIComponent(scenarioId)}/temporadas/`, filas);
+}
+
+export async function saveRackComisiones(
+  scenarioId: string, filas: RackComisionFila[],
+): Promise<RackRoomsResponse> {
+  return api.put(`/rack-rooms/${encodeURIComponent(scenarioId)}/comisiones/`, filas);
+}
+
+/** `tarifa` sólo se toma en los segmentos de tarifa propia; en los demás se ignora. */
+export async function saveRackNoches(
+  scenarioId: string,
+  filas: { segmento_code: string; month: number; noches: number; tarifa?: number }[],
+): Promise<RackRoomsResponse> {
+  return api.put(`/rack-rooms/${encodeURIComponent(scenarioId)}/noches/`, filas);
+}
+
+/** El interruptor. NO recalcula: el P&L cambia en el próximo recálculo. */
+export async function conectarRackRooms(
+  scenarioId: string, fuente: "tarifas" | "canales",
+): Promise<{ scenario_id: string; rooms_source: string; nota: string }> {
+  const form = new FormData();
+  form.append("fuente", fuente);
+  const res = await fetch(
+    `${BASE}/rack-rooms/${encodeURIComponent(scenarioId)}/fuente/`,
+    { method: "PATCH", body: form, headers: authHeaders() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  return res.json();
+}

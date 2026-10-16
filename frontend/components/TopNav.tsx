@@ -85,6 +85,11 @@ export const NAV: NavGroup[] = [
       { key: "channels", href: "/revenue/channels" },
       { key: "packageComponents", href: "/revenue/package-components" },
       { key: "netRate", href: "/revenue/net-rate" },
+      // El modelo ALTERNATIVO de Rooms: noches por segmento de venta en vez
+      // de rack por tipo de habitacion. Va junto a los demas del bloque de
+      // ingresos y no en un menu aparte, porque es el mismo numero por otro
+      // camino — y el escenario elige cual manda (`rooms_source`).
+      { key: "rackRooms", href: "/revenue/rack-rooms" },
       { key: "spaCapture", href: "/revenue/spa" },
       { key: "club", href: "/revenue/club" },
       { key: "totalRevenue", href: "/revenue/total-revenue" },
