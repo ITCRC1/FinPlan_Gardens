@@ -45,6 +45,9 @@ from app.models.scenario_stat import ScenarioStat
 from app.models.statistical_entry import StatisticalEntry
 from app.models.club_membership_stat import ClubMembershipStat
 from app.models.club_fee_budget import ClubFeeBudget
+from app.models.canal_rooms import CanalRoomsEntry
+from app.models.rack_rooms import (RackComision, RackTemporada,
+                                   RackVilla)
 from app.models.pl_manual_input import PLManualInput
 from app.models.actual_entry import ActualEntry
 from app.models.actual_pl_line import ActualPLLine
@@ -146,7 +149,22 @@ COPY_DATASETS: dict[str, list] = {
                  RevenueEntry, SpaBudget, ScenarioMaster, PkgExperience,
                  # El precio de la cuota del Club es modelo de ingresos, igual
                  # que el capture rate y el precio del Spa.
-                 ClubFeeBudget],
+                 ClubFeeBudget,
+                 # ── El modelo de Rooms por canal y su tarifario ───────────
+                 # Las noches por segmento son plan de ingresos, igual que la
+                 # ocupacion: una copia sin ellas nace con el interruptor
+                 # puesto en `canales` y sin una sola noche detras, asi que el
+                 # ingreso de habitaciones sale en CERO sin que nada lo explique.
+                 CanalRoomsEntry,
+                 # Y el tarifario viaja con ellas, por el mismo motivo y por
+                 # uno mas: vive POR ESCENARIO justamente para que el Budget
+                 # 2027 quede congelado con el suyo. Si no viajara, copiar un
+                 # escenario daria noches sin tarifa -> ingreso cero.
+                 #
+                 # `CanalSegmento` NO esta aca a proposito: es catalogo de la
+                 # PROPIEDAD, no del escenario. Copiarlo duplicaria los ocho
+                 # segmentos en cada copia.
+                 RackVilla, RackTemporada, RackComision],
     # El conteo de socios del Club viaja con los estadísticos: al copiar un
     # Budget, la proyección de socios (121 → 129) es parte del plan, igual
     # que la ocupación proyectada.

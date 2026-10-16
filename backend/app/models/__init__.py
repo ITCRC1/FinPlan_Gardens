@@ -51,6 +51,9 @@ from app.models.stat_account import StatAccount
 from app.models.stat_account import DIMENSIONES as DIMENSIONES_ESTADISTICAS
 from app.models.market_code import MarketCode, CANALES, CANAL_A_COMISION
 from app.models.canal_comercial import CanalComercial
+from app.models.canal_rooms import CanalRoomsEntry, CanalSegmento
+from app.models.rack_rooms import (RackComision, RackTemporada,
+                                   RackVilla)
 from app.models.canal_comision import CanalComision
 from app.models.canal_mix_escenario import CanalMixEscenario
 from app.models.statistical_entry import StatisticalEntry
@@ -112,7 +115,7 @@ __all__ = [
     "ReportLineConfig", "AccountMapping",
     "ScenarioStat", "ClubMembershipStat", "ClubFeeBudget",
     "StatAccount", "StatisticalEntry", "DIMENSIONES_ESTADISTICAS",
-    "MarketCode", "CANALES", "CANAL_A_COMISION", "CanalComercial",
+    "MarketCode", "CANALES", "CANAL_A_COMISION", "CanalComercial", "RackVilla", "RackTemporada", "RackComision", "CanalSegmento", "CanalRoomsEntry",
     "CanalComision",
     "CanalMixEscenario",
     "CashFlowParams", "CashFlowVersion", "BelowGopAccountEntry",

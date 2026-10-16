@@ -50,6 +50,14 @@ class Scenario(Base):
     # (the revenue engine); 'checkbook' = read direct USD amounts from RevenueEntry
     # (KPIs come from ScenarioStat). Default keeps existing scenarios on drivers.
     revenue_source: Mapped[str] = mapped_column(String(12), default="drivers")
+    #: De dónde sale el ingreso de HABITACIONES. `'tarifas'` (default) es el
+    #: modelo de siempre: tarifa rack por tipo × ocupación × factor de canal.
+    #: `'canales'` lo toma de `canal_rooms_entries`, que en Ojochal llena la
+    #: capa del tarifario RAC.
+    #:
+    #: ⚠️ El default NO cambia de modelo a nadie: conectarlo es un acto
+    #: explícito del usuario, escenario por escenario.
+    rooms_source: Mapped[str] = mapped_column(String(10), default="tarifas")
     source_file: Mapped[str] = mapped_column(String(200), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     created_by: Mapped[str] = mapped_column(String(100), default="")
