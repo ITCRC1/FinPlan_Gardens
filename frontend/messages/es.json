@@ -4450,6 +4450,18 @@
     "blockTotals": "Totales",
     "commissionHint": "El % que se le va al canal. 0.25 = 25%. Cambiarlo recalcula la tarifa y el ingreso de ese segmento.",
     "racWeightedHint": "De acá sale la tarifa de cada segmento: RAC × (1 − comisión). Se edita en los sub-tabs de Villas y Temporadas.",
-    "discard": "Descartar cambios"
+    "discard": "Descartar cambios",
+    "downloadTemplate": "Bajar plantilla Excel",
+    "checkFile": "Revisar archivo",
+    "checking": "Revisando…",
+    "applyN": "Aplicar {n} cambios",
+    "uploadApplied": "Listo: {n} cambios aplicados.",
+    "noChanges": "El archivo no trae ningún cambio.",
+    "templateHint": "Baje la plantilla, llénela en Excel y vuelva a subirla. Primero le muestra qué cambiaría; nada se guarda hasta que lo confirme. Una celda vacía deja el valor como está.",
+    "field": "Campo",
+    "month": "Mes",
+    "before": "Antes",
+    "after": "Ahora",
+    "rejected": "{n} filas no se pueden aplicar:"
   }
 }

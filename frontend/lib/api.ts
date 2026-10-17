@@ -5429,3 +5429,45 @@ export async function previewRackRooms(
   return api.post(`/rack-rooms/${encodeURIComponent(scenarioId)}/preview/`,
                   { noches, comisiones: comisiones ?? [] });
 }
+
+// ── Rack Rooms · la plantilla que baja, se llena y vuelve ────────────────────
+
+/** Baja el .xlsx con lo que hoy está cargado. Por `fetch` y no por `<a href>`
+ *  porque el endpoint pide token. */
+export async function bajarPlantillaRack(
+  scenarioId: string, nombre: string,
+): Promise<void> {
+  const token = getToken();
+  const res = await fetch(
+    `${BASE}/rack-rooms/${encodeURIComponent(scenarioId)}/plantilla.xlsx`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error(`No se pudo bajar el archivo (HTTP ${res.status})`);
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export interface CambioPlantilla {
+  segmento: string; mes?: number; campo: string; antes: string; ahora: string;
+}
+export interface RechazoPlantilla {
+  clave: string; mes?: number; campo?: string; motivo: string;
+}
+
+/** ⚠️ `aplicar = false` (el default) sólo LEE y devuelve qué cambiaría.
+ *  Nada se escribe hasta que alguien mira la lista y vuelve con `true`. */
+export async function subirPlantillaRack(
+  scenarioId: string, archivo: File, aplicar = false,
+): Promise<{ cambios: CambioPlantilla[]; rechazos: RechazoPlantilla[];
+            aplicado: boolean; cuadro?: RackRoomsResponse }> {
+  const form = new FormData();
+  form.append("archivo", archivo);
+  const res = await fetch(
+    `${BASE}/rack-rooms/${encodeURIComponent(scenarioId)}/upload/?aplicar=${aplicar}`,
+    { method: "POST", body: form, headers: authHeaders() });
+  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  return res.json();
+}

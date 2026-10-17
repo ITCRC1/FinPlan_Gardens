@@ -767,6 +767,15 @@ MENSAJES: dict[str, dict[str, str]] = {
     "canal.recalcular_despues": {
         "es": "El modelo quedó conectado. El P&L cambia en el próximo recálculo.",
         "en": "The model is now connected. The P&L changes on the next recalculation."},
+    "rack.archivo_vacio": {
+        "es": "El archivo llegó vacío.",
+        "en": "The file arrived empty."},
+    "rack.archivo_ilegible": {
+        "es": "No se pudo abrir el archivo. Tiene que ser el .xlsx que baja esta misma pantalla, guardado en formato Excel.",
+        "en": "The file could not be opened. It must be the .xlsx this screen downloads, saved in Excel format."},
+    "rack.sin_encabezado": {
+        "es": "El archivo no tiene el encabezado de la plantilla: faltan las columnas «clave» y «Segmento». Bajá la plantilla de nuevo y llenala sobre ese archivo.",
+        "en": "The file is missing the template header: columns «clave» and «Segmento» are not there. Download the template again and fill that file in."},
     "rack.unidades_negativas": {
         "es": "La villa «{villa}» tiene unidades negativas.",
         "en": "Villa “{villa}” has negative units."},

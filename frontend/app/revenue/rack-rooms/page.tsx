@@ -40,7 +40,8 @@ import IrA from "@/components/IrA";
 import {
   getScenarios, getRackRooms, saveRackVillas, saveRackTemporadas,
   saveRackComisiones, saveRackNoches, conectarRackRooms,
-  previewRackRooms,
+  previewRackRooms, bajarPlantillaRack, subirPlantillaRack,
+  type CambioPlantilla, type RechazoPlantilla,
   type Scenario, type RackRoomsResponse, type RackVillaFila,
   type RackTemporadaFila, type RackComisionFila, type RackMes,
 } from "@/lib/api";
@@ -122,7 +123,7 @@ export default function RackRoomsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const aplicar = useCallback((d: RackRoomsResponse) => {
+  const aplicar2 = useCallback((d: RackRoomsResponse) => {
     setData(d);
     setVillas(d.villas.map(v => ({ ...v })));
     setTemps(d.temporadas.map(x => ({ ...x })));
@@ -160,10 +161,10 @@ export default function RackRoomsPage() {
 
   const load = useCallback(async (sid: string) => {
     setLoading(true); setError(null);
-    try { aplicar(await getRackRooms(sid)); }
+    try { aplicar2(await getRackRooms(sid)); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : tc("error")); }
     finally { setLoading(false); }
-  }, [aplicar]);
+  }, [aplicar2]);
 
   useEffect(() => { if (scenarioId) load(scenarioId); }, [scenarioId, load]);
 
@@ -226,7 +227,7 @@ export default function RackRoomsPage() {
   async function guardar(fn: () => Promise<RackRoomsResponse>) {
     if (!scenarioId || locked) return;
     setSaving(true); setError(null); setMsg(null);
-    try { aplicar(await fn()); setMsg(t("saved")); }
+    try { aplicar2(await fn()); setMsg(t("saved")); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : tc("error")); }
     finally { setSaving(false); }
   }
@@ -241,6 +242,44 @@ export default function RackRoomsPage() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : tc("error"));
     } finally { setRecalc(false); }
+  }
+
+  // ── La plantilla de Excel ─────────────────────────────────────────────────
+  //
+  // Owner, 2026-10-16: *«por qué no creás un download file para actualizar los
+  // datos vía upload»*. Hay trabajo que se hace mejor en Excel —arrastrar una
+  // celda, comparar meses de corrido, revisarlo con alguien antes de subirlo—
+  // que celda por celda acá.
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [cambios, setCambios] = useState<CambioPlantilla[] | null>(null);
+  const [rechazos, setRechazos] = useState<RechazoPlantilla[]>([]);
+  const [subiendo, setSubiendo] = useState(false);
+
+  async function bajar() {
+    const sel = scenarios.find(x => x.id === scenarioId);
+    const nombre = `Rooms_por_segmento_${sel?.year ?? ""}.xlsx`;
+    try { await bajarPlantillaRack(scenarioId, nombre); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : tc("error")); }
+  }
+
+  /** `aplicar = false` sólo REVISA. Lo que se escribe, se escribe después de
+   *  que alguien miró la lista. */
+  async function subir(aplicar: boolean) {
+    if (!archivo || !scenarioId) return;
+    setSubiendo(true); setError(null); setMsg(null);
+    try {
+      const r = await subirPlantillaRack(scenarioId, archivo, aplicar);
+      setCambios(r.cambios);
+      setRechazos(r.rechazos);
+      if (r.aplicado) {
+        if (r.cuadro) aplicar2(r.cuadro);
+        setArchivo(null);
+        setCambios(null);
+        setMsg(t("uploadApplied", { n: r.cambios.length }));
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : tc("error"));
+    } finally { setSubiendo(false); }
   }
 
   // ── La previsualización ───────────────────────────────────────────────────
@@ -664,6 +703,75 @@ export default function RackRoomsPage() {
                   : <span>● {t("saved2")}</span>}
               </p>
 
+              {/* ── La plantilla de Excel ───────────────────────────────── */}
+              <div style={{ padding: 12, borderRadius: 6, marginBottom: 14,
+                            background: "var(--bg-surface)",
+                            border: "1px solid var(--border-medium)" }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center",
+                              flexWrap: "wrap" }}>
+                  <button onClick={bajar} style={excelBtn}>⬇ {t("downloadTemplate")}</button>
+                  <input type="file" accept=".xlsx" disabled={locked}
+                         onChange={e => { setArchivo(e.target.files?.[0] ?? null);
+                                          setCambios(null); setRechazos([]); }}
+                         style={{ fontSize: 12.5, color: "var(--text-secondary)" }} />
+                  <button disabled={!archivo || subiendo || locked}
+                          style={btn(!!archivo && !subiendo && !locked)}
+                          onClick={() => subir(false)}>
+                    {subiendo ? t("checking") : t("checkFile")}
+                  </button>
+                  {cambios !== null && cambios.length > 0 && (
+                    <button disabled={subiendo} style={btn(!subiendo)}
+                            onClick={() => subir(true)}>
+                      {t("applyN", { n: cambios.length })}
+                    </button>)}
+                </div>
+                <p style={{ color: "var(--text-secondary)", fontSize: 12,
+                            marginTop: 8, marginBottom: 0 }}>
+                  {t("templateHint")}
+                </p>
+
+                {cambios !== null && (
+                  <div style={{ marginTop: 10 }}>
+                    {cambios.length === 0 && rechazos.length === 0 && (
+                      <div style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>
+                        {t("noChanges")}
+                      </div>)}
+                    {cambios.length > 0 && (
+                      <div style={{ maxHeight: 190, overflowY: "auto" }}>
+                        <table className="fin-table" style={{ fontSize: 12 }}>
+                          <thead><tr>
+                            <th style={{ textAlign: "left" }}>{t("segment")}</th>
+                            <th style={{ textAlign: "left" }}>{t("field")}</th>
+                            <th style={{ textAlign: "left" }}>{t("month")}</th>
+                            <th style={{ textAlign: "right" }}>{t("before")}</th>
+                            <th style={{ textAlign: "right" }}>{t("after")}</th>
+                          </tr></thead>
+                          <tbody>
+                            {cambios.map((c, i) => (
+                              <tr key={i}>
+                                <td style={TDL}>{c.segmento}</td>
+                                <td style={TDL}>{c.campo}</td>
+                                <td style={TDL}>{c.mes ? MONTHS[c.mes - 1] : "—"}</td>
+                                <td style={TD}>{c.antes}</td>
+                                <td style={{ ...TD, fontWeight: 700 }}>{c.ahora}</td>
+                              </tr>))}
+                          </tbody>
+                        </table>
+                      </div>)}
+                    {rechazos.length > 0 && (
+                      <div style={{ ...AVISO, marginTop: 8, marginBottom: 0 }}>
+                        <b>{t("rejected", { n: rechazos.length })}</b>
+                        <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                          {rechazos.slice(0, 12).map((x, i) => (
+                            <li key={i}>
+                              {x.clave}{x.mes ? ` · ${MONTHS[x.mes - 1]}` : ""}
+                              {x.campo ? ` · ${x.campo}` : ""} — {x.motivo}
+                            </li>))}
+                        </ul>
+                      </div>)}
+                  </div>)}
+              </div>
+
               <div className="fin-sticky" style={{ overflowX: "auto" }}>
                 <table className="fin-table" style={{ minWidth: 1340 }}>
                   <thead><tr>
@@ -804,7 +912,7 @@ export default function RackRoomsPage() {
                 {dirty && (
                   <button disabled={saving} style={{ ...btn(!saving),
                             background: "var(--bg-surface)", color: "var(--text-secondary)" }}
-                          onClick={() => { if (data) aplicar(data); }}>
+                          onClick={() => { if (data) aplicar2(data); }}>
                     {t("discard")}
                   </button>)}
               </div>

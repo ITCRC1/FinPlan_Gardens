@@ -48,14 +48,15 @@ input de la ponderación del RAC. Cuando no coinciden, el `GET` lo dice en
 ocupaciones para el mismo mes, y ninguna avisa.
 """
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api._candado import candado
+from app.importers.registro_dep import registro_de_subida
 from app.auth import get_current_user
 from app.db import get_db
 from app.engine.rack_tarifa import (derivar_mes, dias_del_mes,
@@ -634,6 +635,229 @@ async def preview(scenario_id: str, body: PreviewBody,
     salida = _armar(esc, segs, villas, temps, coms, filas, unidades_hotel)
     salida["es_preview"] = True
     return salida
+
+
+@router.get("/rack-rooms/{scenario_id}/plantilla.xlsx")
+async def bajar_plantilla(scenario_id: str, db: AsyncSession = Depends(get_db),
+                          _=Depends(get_current_user)):
+    """El cuadro de entrada, para llenar en Excel y volver a subir.
+
+    Owner, 2026-10-16: *«se baja el archivo, se actualizan los datos y se
+    vuelve a subir»*.
+
+    Trae lo que HOY está cargado, así que bajar y subir sin tocar nada no
+    cambia nada. Es a propósito: una plantilla en blanco obliga a retranscribir
+    y a la tercera fila ya hay un error de dedo.
+    """
+    from fastapi.responses import Response
+
+    from app.export.rack_rooms_xlsx import construir_plantilla
+    from app.hotel_actual import HOTEL_NAME, hotel_slug
+
+    cuadro = await _ver(db, scenario_id)
+    esc = await _escenario(db, scenario_id)
+    por_seg: dict[tuple[str, int], dict] = {}
+    for e in cuadro["entradas"]:
+        por_seg[(e["segmento_code"], int(e["month"]))] = e
+    comis = {c["segmento_code"]: c for c in cuadro["comisiones"]}
+
+    segmentos = []
+    for s in cuadro["segmentos"]:
+        c = comis.get(s["code"], {})
+        propia = bool(c.get("tarifa_propia"))
+        segmentos.append({
+            "code": s["code"], "nombre": s["nombre"], "propia": propia,
+            "comision": float(c.get("comision_pct") or 0),
+            "noches": [float(por_seg.get((s["code"], m), {}).get("noches") or 0)
+                       for m in MESES],
+            "tarifas": [float(por_seg.get((s["code"], m), {}).get("tarifa") or 0)
+                        for m in MESES],
+        })
+
+    # El pie: lo que hoy sale de esos números. No se lee de vuelta.
+    ms = cuadro["meses"]
+    T = cuadro["total"]
+    resumen = [
+        {"label": "Noches disponibles", "formato": "#,##0",
+         "valores": [float(m["disponibles"]) for m in ms],
+         "total": float(T["disponibles"])},
+        {"label": "Ingreso neto $", "formato": "#,##0.00",
+         "valores": [float(m["ingreso"]) for m in ms],
+         "total": float(T["ingreso"])},
+        {"label": "% Ocupación", "formato": "0.0%",
+         "valores": [float(m["ocupacion"]) for m in ms],
+         "total": float(T["ocupacion"])},
+        {"label": "ADR", "formato": "#,##0.00",
+         "valores": [float(m["adr"]) for m in ms], "total": float(T["adr"])},
+        {"label": "RevPAR", "formato": "#,##0.00",
+         "valores": [float(m["revpar"]) for m in ms],
+         "total": float(T["revpar"])},
+        {"label": "RAC ponderado", "formato": "#,##0.00",
+         "valores": [float(m["rac_ponderado"]) for m in ms],
+         "total": float(T["rack"]["adr_rack_sin_propias"])},
+    ]
+
+    etiqueta = " ".join(str(v) for v in (esc.type, esc.version) if v)
+    xls = construir_plantilla(segmentos, HOTEL_NAME, etiqueta, esc.year, resumen)
+    fn = f"{hotel_slug()}_Rooms_por_segmento_{esc.year}.xlsx".replace(" ", "-")
+    return Response(
+        content=xls,
+        media_type=("application/vnd.openxmlformats-officedocument"
+                    ".spreadsheetml.sheet"),
+        headers={"Content-Disposition": f'attachment; filename="{fn}"'})
+
+
+@router.post("/rack-rooms/{scenario_id}/upload/",
+             dependencies=[Depends(registro_de_subida)])
+async def subir_plantilla(scenario_id: str, archivo: UploadFile = File(...),
+                          aplicar: bool = Query(False),
+                          db: AsyncSession = Depends(get_db),
+                          user=Depends(get_current_user)):
+    """Lee la plantilla llena y dice QUÉ cambiaría. Aplica sólo si se pide.
+
+    ⚠️ **En seco por omisión.** Subir un archivo que mueve el presupuesto
+    entero y enterarse después no es aceptable: primero la lista, después el
+    botón. Con `aplicar=true` se escribe.
+
+    ⚠️ **Una celda vacía deja el valor como está.** No es un cero. Tratarla
+    como cero convertiría un descuido —borrar una celda, filtrar y no darse
+    cuenta— en un mes en cero, con el total cuadrando consigo mismo. Para poner
+    cero hay que escribir `0`.
+
+    Lo que no se puede aplicar NO se aplica a medias: se rechaza esa fila, se
+    dice cuál y por qué, y el resto sigue.
+    """
+    from app.export.rack_rooms_xlsx import leer_plantilla, partir_clave
+
+    esc = await candado(db, scenario_id)
+    crudo = await archivo.read()
+    if not crudo:
+        raise ErrorApi(422, "rack.archivo_vacio")
+    try:
+        filas_archivo = leer_plantilla(crudo)
+    except ValueError:
+        raise ErrorApi(422, "rack.sin_encabezado")
+    except Exception:
+        raise ErrorApi(422, "rack.archivo_ilegible")
+
+    segs = {s.code: s for s in await _segmentos(db, esc.hotel_id)}
+    coms = {c.segmento_code: c for c in (await db.execute(select(RackComision).where(
+        RackComision.scenario_id == scenario_id))).scalars().all()}
+    propias = {k for k, c in coms.items() if c.tarifa_propia}
+    actuales = {(f.segmento_code, f.month): f for f in (await db.execute(
+        select(CanalRoomsEntry).where(
+            CanalRoomsEntry.scenario_id == scenario_id))).scalars().all()}
+
+    cambios: list[dict] = []
+    rechazos: list[dict] = []
+    vistos: set[str] = set()
+
+    def _num(v):
+        """Vacío → None (no se toca). Un texto que no es número → error."""
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return None
+        try:
+            return Decimal(str(v).replace(",", "").replace("%", "").strip())
+        except (InvalidOperation, ValueError):
+            raise ValueError(str(v))
+
+    for clave, com_cruda, meses in filas_archivo:
+        code, tipo = partir_clave(clave)
+        if code not in segs:
+            rechazos.append({"clave": clave,
+                             "motivo": "no es un segmento de esta propiedad"})
+            continue
+        if clave in vistos:
+            rechazos.append({"clave": clave,
+                             "motivo": "la fila aparece dos veces en el archivo"})
+            continue
+        vistos.add(clave)
+        if tipo == "TARIFA" and code not in propias:
+            rechazos.append({"clave": clave,
+                             "motivo": "este segmento no tiene tarifa propia: "
+                                       "su tarifa sale del tarifario RAC"})
+            continue
+
+        # La comisión, una por segmento y sólo en su fila de noches.
+        if tipo == "NOCHES" and code not in propias:
+            try:
+                pct = _num(com_cruda)
+            except ValueError as e:
+                rechazos.append({"clave": clave, "campo": "% Comisión",
+                                 "motivo": f"«{e}» no es un número"})
+                pct = None
+            if pct is not None:
+                if not (Decimal("0") <= pct < Decimal("1")):
+                    rechazos.append({"clave": clave, "campo": "% Comisión",
+                                     "motivo": f"{pct} está fuera de 0 a 1 "
+                                               f"(0.25 = 25%)"})
+                else:
+                    fila = coms.get(code)
+                    antes = Decimal(str(fila.comision_pct)) if fila else Decimal("0")
+                    if antes != pct:
+                        cambios.append({"segmento": segs[code].nombre,
+                                        "campo": "% Comisión",
+                                        "antes": str(antes), "ahora": str(pct)})
+                        if aplicar:
+                            if fila is None:
+                                fila = RackComision(scenario_id=scenario_id,
+                                                    hotel_id=esc.hotel_id,
+                                                    segmento_code=code)
+                                db.add(fila)
+                                coms[code] = fila
+                            fila.comision_pct = pct
+
+        for i, bruto in enumerate(meses):
+            mes = i + 1
+            try:
+                valor = _num(bruto)
+            except ValueError as e:
+                rechazos.append({"clave": clave, "mes": mes,
+                                 "motivo": f"«{e}» no es un número"})
+                continue
+            if valor is None:            # vacío = no se toca
+                continue
+            if valor < 0:
+                rechazos.append({"clave": clave, "mes": mes,
+                                 "motivo": "no puede ser negativo"})
+                continue
+            fila = actuales.get((code, mes))
+            campo = "Noches" if tipo == "NOCHES" else "Tarifa propia"
+            antes = Decimal(str(
+                (fila.noches if tipo == "NOCHES" else fila.tarifa) if fila else 0))
+            if antes == valor:
+                continue
+            cambios.append({"segmento": segs[code].nombre, "mes": mes,
+                            "campo": campo, "antes": str(antes),
+                            "ahora": str(valor)})
+            if aplicar:
+                if fila is None:
+                    fila = CanalRoomsEntry(scenario_id=scenario_id,
+                                           hotel_id=esc.hotel_id,
+                                           segmento_code=code, month=mes)
+                    db.add(fila)
+                    actuales[(code, mes)] = fila
+                if tipo == "NOCHES":
+                    fila.noches = valor
+                else:
+                    fila.tarifa = valor
+                fila.tarifa_digitada = True
+                fila.actualizado_en = datetime.utcnow()
+                fila.actualizado_por = getattr(user, "email", "") or ""
+
+    resumen = {"cambios": cambios, "rechazos": rechazos,
+               "aplicado": bool(aplicar)}
+    if not aplicar:
+        # ⚠️ Nada quedó escrito, pero se tocaron objetos de la sesión al leer.
+        # Se deshace para que no viajen en el `commit` de otra ruta.
+        await db.rollback()
+        return resumen
+
+    await db.flush()
+    await _rederivar(db, esc, user)
+    await db.commit()
+    resumen["cuadro"] = await _ver(db, scenario_id)
+    return resumen
 
 
 @router.patch("/rack-rooms/{scenario_id}/fuente/")

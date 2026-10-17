@@ -4450,6 +4450,18 @@
     "blockTotals": "Totals",
     "commissionHint": "The share that goes to the channel. 0.25 = 25%. Changing it recomputes that segment's rate and revenue.",
     "racWeightedHint": "Each segment's rate comes from here: RAC x (1 - commission). Edit it in the Villas and Seasons sub-tabs.",
-    "discard": "Discard changes"
+    "discard": "Discard changes",
+    "downloadTemplate": "Download Excel template",
+    "checkFile": "Check file",
+    "checking": "Checking…",
+    "applyN": "Apply {n} changes",
+    "uploadApplied": "Done: {n} changes applied.",
+    "noChanges": "The file brings no changes.",
+    "templateHint": "Download the template, fill it in Excel and upload it back. It first shows what would change; nothing is saved until you confirm. An empty cell leaves the value as it was.",
+    "field": "Field",
+    "month": "Month",
+    "before": "Before",
+    "after": "After",
+    "rejected": "{n} rows cannot be applied:"
   }
 }
