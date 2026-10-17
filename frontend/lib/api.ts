@@ -5311,6 +5311,20 @@ export interface RackSegmentoMes {
   noches: string; tarifa: string; ingreso: string;
   ocupacion: string; ingreso_rack: string;
 }
+/** El lado RACK del mes: contra esto se mide el descuento del canal. */
+export interface RackKpis {
+  ingreso_rack: string; ingreso_neto: string;
+  noches_facturadas: string; noches_tarifa_propia: string;
+  noches_cortesia: string;
+  adr_rack: string;
+  /** El RAC ponderado puro: sin los segmentos que no tienen tarifario. */
+  adr_rack_sin_propias: string;
+  revpar_rack: string; adr_neto: string; revpar_neto: string;
+  comision_usd: string; comision_pct: string;
+  /** `1 − comisión`. Es el número que se mira para negociar con un canal. */
+  pct_rack_retenido: string;
+}
+
 export interface RackMes {
   month: number; dias: number;
   dias_por_temporada: Record<string, number>;
@@ -5321,6 +5335,8 @@ export interface RackMes {
   disponibles: string; noches_ingreso: string; noches_totales: string;
   ingreso: string; ocupacion: string; ocupacion_total: string;
   adr: string; revpar: string;
+  rack: RackKpis;
+  mix_rack: Record<string, string>;
   segmentos: Record<string, RackSegmentoMes>;
 }
 export interface RackTotal {
@@ -5328,6 +5344,8 @@ export interface RackTotal {
   ingreso: string; ingreso_rack: string;
   ocupacion: string; ocupacion_total: string; adr: string; revpar: string;
   segmentos: Record<string, { noches: string; ingreso: string }>;
+  rack: RackKpis;
+  mix_rack: Record<string, string>;
 }
 export interface RackRoomsResponse {
   scenario_id: string; year: number; locked: boolean;

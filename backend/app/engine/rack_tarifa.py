@@ -192,6 +192,72 @@ def ingreso_neto_segmento(noches, rac: Decimal, comision_pct) -> Decimal:
 
 
 # ── El mes entero, listo para escribir en `canal_rooms_entries` ─────────────
+def kpis_rack(segmentos: dict, noches_por_segmento: dict, genera: dict,
+              propias: set, disponibles) -> dict:
+    """El bloque «KPIs A PRECIO RACK» del libro, y el de «RACK vs NETO».
+
+    `segmentos` — lo que devuelve `derivar_mes`: {code: {tarifa, ingreso,
+    ingreso_rack}}.
+
+    Devuelve los dos lados del mismo mes. El NETO es lo que entra al P&L; el
+    RACK es contra lo que se mide el descuento — sin él, «vendimos a $177» no
+    se puede comparar con nada y la comisión deja de tener denominador.
+
+    ## ⚠️ El ADR Rack se muestra DOS veces, y no es redundancia
+
+    `adr_rack` divide por TODAS las noches que facturan. `adr_rack_sin_propias`
+    saca los segmentos de tarifa propia —Long term, que no tiene RAC— y por eso
+    da el RAC ponderado puro. Mezclarlos hace parecer que el tarifario bajó
+    cuando lo único que pasó es que se vendieron más noches largas: en 2027 son
+    **$209,70 contra $231,29**, y la segunda es la que se compara contra el
+    tarifario del año.
+
+    ## ⚠️ Las noches de cortesía no entran en ningún denominador de tarifa
+
+    Ocupan villa, así que cuentan para la ocupación, pero no facturan: meterlas
+    acá diluye el ADR en los dos lados.
+    """
+    disp = Decimal(str(disponibles or 0))
+    rack = neto = ZERO
+    n_fact = n_propias = n_cortesia = ZERO
+    rack_propias = ZERO
+    for code, d in segmentos.items():
+        n = Decimal(str(noches_por_segmento.get(code, 0) or 0))
+        if not genera.get(code, True):
+            n_cortesia += n
+            continue
+        rack += d["ingreso_rack"]
+        neto += d["ingreso"]
+        n_fact += n
+        if code in propias:
+            n_propias += n
+            rack_propias += d["ingreso_rack"]
+    n_sin_propias = n_fact - n_propias
+    comision = rack - neto
+    return {
+        "ingreso_rack": rack,
+        "ingreso_neto": neto,
+        "noches_facturadas": n_fact,
+        "noches_tarifa_propia": n_propias,
+        "noches_cortesia": n_cortesia,
+        "adr_rack": (rack / n_fact) if n_fact else ZERO,
+        # El RAC ponderado puro: sin los que no tienen tarifario.
+        "adr_rack_sin_propias": ((rack - rack_propias) / n_sin_propias)
+                                if n_sin_propias else ZERO,
+        "revpar_rack": (rack / disp) if disp else ZERO,
+        "adr_neto": (neto / n_fact) if n_fact else ZERO,
+        "revpar_neto": (neto / disp) if disp else ZERO,
+        "comision_usd": comision,
+        "comision_pct": (comision / rack) if rack else ZERO,
+        # Lo que queda del rack después del canal. Es `1 − comisión`, y va
+        # aparte porque es el número que el owner mira para negociar.
+        "pct_rack_retenido": (neto / rack) if rack else ZERO,
+        "mix_rack": {code: ((d["ingreso_rack"] / rack) if rack else ZERO)
+                     for code, d in segmentos.items()
+                     if genera.get(code, True)},
+    }
+
+
 def derivar_mes(villas, temporadas, comisiones: dict, noches_por_segmento: dict,
                 anio: int, mes: int, tarifas_propias: dict | None = None) -> dict:
     """Todo el paso 1→8 de un mes, en una llamada.

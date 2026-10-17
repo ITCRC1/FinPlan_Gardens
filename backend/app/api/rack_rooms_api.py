@@ -60,8 +60,8 @@ from app.auth import get_current_user
 from app.db import get_db
 from app.engine.rack_tarifa import (derivar_mes, dias_del_mes,
                                     dias_por_temporada, dias_sin_temporada,
-                                    rac_ponderado, rac_villa_mes,
-                                    traslape)
+                                    kpis_rack, rac_ponderado,
+                                    rac_villa_mes, traslape)
 from app.errores import ErrorApi
 from app.models.canal_rooms import CanalRoomsEntry, CanalSegmento, calcular_mes
 from app.models.rack_rooms import RackComision, RackTemporada, RackVilla
@@ -184,6 +184,7 @@ async def _ver(db: AsyncSession, scenario_id: str) -> dict:
             por_mes[int(f.month)].append(f)
 
     hay_tarifario = bool(villas and temps)
+    propias = {c.segmento_code for c in coms if c.tarifa_propia}
     meses = []
     for m in MESES:
         delmes = por_mes[m]
@@ -200,6 +201,12 @@ async def _ver(db: AsyncSession, scenario_id: str) -> dict:
                                                  for f in delmes})["segmentos"]
                     if hay_tarifario and delmes else {})
         calc = calcular_mes(delmes, genera, disp)
+        # El lado RACK del mes. Owner, 2026-10-16: *«no veo en el app el cálculo
+        # de rooms revenue a tarifa rack, sólo veo net»*. El neto es lo que
+        # entra al P&L; el rack es contra lo que se mide el descuento — sin él,
+        # la comisión se queda sin denominador.
+        rk = kpis_rack(derivado, {f.segmento_code: f.noches for f in delmes},
+                       genera, propias, disp)
         meses.append({
             "month": m,
             "dias": dias_del_mes(esc.year, m),
@@ -209,6 +216,8 @@ async def _ver(db: AsyncSession, scenario_id: str) -> dict:
             "rac_por_villa": {v.villa: _d(rac_villa_mes(v, esc.year, m, temps))
                               for v in villas},
             **{k: _d(v) for k, v in calc.items() if k != "segmentos"},
+            "rack": {k: _d(v) for k, v in rk.items() if k != "mix_rack"},
+            "mix_rack": {c: _d(v) for c, v in rk["mix_rack"].items()},
             "segmentos": {
                 c: {**{kk: _d(vv) for kk, vv in d.items()},
                     "ingreso_rack": _d(derivado.get(c, {}).get("ingreso_rack", 0))}
@@ -240,6 +249,22 @@ async def _ver(db: AsyncSession, scenario_id: str) -> dict:
                                   for x in meses)),
             } for s in segs},
     }
+
+    # El año a precio RACK. Las magnitudes se SUMAN y los promedios se
+    # recalculan sobre las sumas — un promedio de promedios no es el promedio, y
+    # con meses de volumen muy distinto el ADR del año sale corrido.
+    rk_anio = kpis_rack(
+        {s.code: {
+            "ingreso": sum((Decimal(x["segmentos"].get(s.code, {}).get("ingreso", 0))
+                            for x in meses), Decimal("0")),
+            "ingreso_rack": sum((Decimal(x["segmentos"].get(s.code, {}).get("ingreso_rack", 0))
+                                 for x in meses), Decimal("0")),
+         } for s in segs},
+        {s.code: sum((Decimal(x["segmentos"].get(s.code, {}).get("noches", 0))
+                      for x in meses), Decimal("0")) for s in segs},
+        genera, propias, tot_disp)
+    total["rack"] = {k: _d(v) for k, v in rk_anio.items() if k != "mix_rack"}
+    total["mix_rack"] = {c: _d(v) for c, v in rk_anio["mix_rack"].items()}
 
     unidades_tarifario = sum(int(v.unidades or 0) for v in villas)
     return {

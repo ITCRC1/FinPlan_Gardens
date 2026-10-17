@@ -40,7 +40,7 @@ import {
   getScenarios, getRackRooms, saveRackVillas, saveRackTemporadas,
   saveRackComisiones, saveRackNoches, conectarRackRooms,
   type Scenario, type RackRoomsResponse, type RackVillaFila,
-  type RackTemporadaFila, type RackComisionFila,
+  type RackTemporadaFila, type RackComisionFila, type RackMes,
 } from "@/lib/api";
 import { elegir } from "@/lib/escenarioPreferido";
 import { bajarCuadros, type FilaCuadro } from "@/lib/exportCuadro";
@@ -82,6 +82,11 @@ const inpNum: React.CSSProperties = {
 const TD: React.CSSProperties = { padding: "4px 7px", textAlign: "right",
                                   fontVariantNumeric: "tabular-nums" };
 const TDL: React.CSSProperties = { padding: "4px 7px", textAlign: "left" };
+const BLQ: React.CSSProperties = {
+  ...TDL, fontWeight: 700, paddingTop: 12, fontSize: 11.5,
+  letterSpacing: 0.4, textTransform: "uppercase",
+  color: "var(--text-secondary)",
+};
 const AVISO: React.CSSProperties = {
   padding: "8px 12px", borderRadius: 5, fontSize: 12.5, marginBottom: 10,
   background: "var(--bg-surface)", borderLeft: "3px solid var(--negative)",
@@ -232,6 +237,32 @@ export default function RackRoomsPage() {
     } finally { setRecalc(false); }
   }
 
+  /** Una fila del cuadro: doce meses + total, con su formato.
+   *
+   * El cuadro tiene veinte filas de la misma forma. Escritas a mano una por
+   * una es donde se cuela la que apunta a la columna de al lado — y una fila
+   * corrida no falla, sólo muestra otro número.
+   */
+  const ms = data?.meses ?? [];
+  const Fila = ({ l, v, t: tot, f, bold, sub, hint }: {
+    l: string; v: (m: RackMes) => number; t: number;
+    f: (x: number) => string; bold?: boolean; sub?: boolean; hint?: string;
+  }) => (
+    <tr>
+      <td style={{ ...TDL, fontWeight: bold ? 700 : undefined,
+                   paddingLeft: sub ? 22 : undefined,
+                   color: sub ? "var(--text-secondary)" : undefined }}
+          title={hint}>
+        {sub ? "↳ " : ""}{l}
+      </td>
+      {ms.map(m => (
+        <td key={m.month} style={{ ...TD, fontWeight: bold ? 700 : undefined }}>
+          {f(v(m))}
+        </td>))}
+      <td style={{ ...TD, fontWeight: 700 }}>{f(tot)}</td>
+    </tr>
+  );
+
   // ── Los controles del libro ────────────────────────────────────────────────
   const avisos: string[] = [];
   if (data && !data.hay_tarifario) avisos.push(t("warnNoTariff"));
@@ -259,26 +290,69 @@ export default function RackRoomsPage() {
                   nivel = 1): FilaCuadro =>
       ({ label, nivel, formato, valores: [...d.meses.map(pick), total] });
     const T = d.total;
+    const bloque = (label: string): FilaCuadro =>
+      ({ label, es_total: true, valores: Array(13).fill(null) });
+    const R = T.rack;
+    // El mismo orden que la pestaña `KPIs Rack` del libro, bloque por bloque.
+    // ⚠️ El rack va JUNTO con el neto: el neto es lo que entra al P&L y el rack
+    // es contra lo que se mide el descuento del canal.
     const filas: FilaCuadro[] = [
-      { label: t("blockRack"), es_total: true, valores: Array(13).fill(null) },
-      fila(t("racWeighted"), m => n(m.rac_ponderado), "usd2", 0),
-      { label: t("blockVolume"), es_total: true, valores: Array(13).fill(null) },
+      bloque(t("blockCapacity")),
       fila(t("available"), m => n(m.disponibles), "num", n(T.disponibles)),
-      fila(t("nightsRevenue"), m => n(m.noches_ingreso), "num", n(T.noches_ingreso)),
-      fila(t("nightsTotal"), m => n(m.noches_totales), "num", n(T.noches_totales)),
-      { label: t("blockKpis"), es_total: true, valores: Array(13).fill(null) },
-      fila(t("revenue"), m => n(m.ingreso), "usd2", n(T.ingreso)),
-      fila(t("adr"), m => n(m.adr), "usd2", n(T.adr)),
+      fila(t("nightsRevenue"), m => n(m.rack.noches_facturadas), "num",
+           n(R.noches_facturadas)),
+      fila(t("nightsOwnRate"), m => n(m.rack.noches_tarifa_propia), "num",
+           n(R.noches_tarifa_propia)),
+      fila(t("nightsComp"), m => n(m.rack.noches_cortesia), "num",
+           n(R.noches_cortesia)),
       fila(t("occupancy"), m => n(m.ocupacion), "pct", n(T.ocupacion)),
       fila(t("occupancyTotal"), m => n(m.ocupacion_total), "pct", n(T.ocupacion_total)),
-      fila(t("revpar"), m => n(m.revpar), "usd2", n(T.revpar)),
-      { label: t("blockSegments"), es_total: true, valores: Array(13).fill(null) },
+      bloque(t("blockRackRate")),
+      fila(t("racWeighted"), m => n(m.rac_ponderado), "usd2",
+           n(R.adr_rack_sin_propias)),
+      bloque(t("blockRackRevenue")),
     ];
+    for (const s of segs.filter(x => x.genera_ingreso)) {
+      filas.push({
+        label: s.nombre, nivel: 1, formato: "usd2",
+        valores: [...d.meses.map(m => n(m.segmentos[s.code]?.ingreso_rack)),
+                  d.meses.reduce((a, m) => a + n(m.segmentos[s.code]?.ingreso_rack), 0)],
+      });
+    }
+    filas.push(
+      fila(t("totalRackRevenue"), m => n(m.rack.ingreso_rack), "usd2",
+           n(R.ingreso_rack)),
+      bloque(t("blockRackKpis")),
+      fila(t("adrRack"), m => n(m.rack.adr_rack), "usd2", n(R.adr_rack)),
+      fila(t("adrRackNoOwn"), m => n(m.rack.adr_rack_sin_propias), "usd2",
+           n(R.adr_rack_sin_propias)),
+      fila(t("revparRack"), m => n(m.rack.revpar_rack), "usd2", n(R.revpar_rack)),
+      bloque(t("blockRackVsNet")),
+      fila(t("totalNetRevenue"), m => n(m.rack.ingreso_neto), "usd2",
+           n(R.ingreso_neto)),
+      fila(t("adrNet"), m => n(m.rack.adr_neto), "usd2", n(R.adr_neto)),
+      fila(t("revparNet"), m => n(m.rack.revpar_neto), "usd2", n(R.revpar_neto)),
+      fila(t("commissionUsd"), m => n(m.rack.comision_usd), "usd2",
+           n(R.comision_usd)),
+      fila(t("commissionPct"), m => n(m.rack.comision_pct), "pct",
+           n(R.comision_pct)),
+      fila(t("rackKept"), m => n(m.rack.pct_rack_retenido), "pct",
+           n(R.pct_rack_retenido)),
+      bloque(t("blockSegments")),
+    );
     for (const s of segs) {
       filas.push({
         label: s.nombre, nivel: 1, formato: "usd2",
         valores: [...d.meses.map(m => n(m.segmentos[s.code]?.ingreso)),
                   n(T.segmentos[s.code]?.ingreso)],
+      });
+    }
+    filas.push(bloque(t("blockRackMix")));
+    for (const s of segs.filter(x => x.genera_ingreso)) {
+      filas.push({
+        label: s.nombre, nivel: 1, formato: "pct",
+        valores: [...d.meses.map(m => n(m.mix_rack?.[s.code])),
+                  n(T.mix_rack?.[s.code])],
       });
     }
     try {
@@ -674,67 +748,105 @@ export default function RackRoomsPage() {
             </div>)}
 
           {/* ── 5 · KPIs Rack ──────────────────────────────────────────────── */}
+          {/* ── 5 · KPIs Rack ──────────────────────────────────────────────
+              Es la pestaña `KPIs Rack` del libro del owner, bloque por bloque.
+
+              ⚠️ **Los dos lados van juntos.** El NETO es lo que entra al P&L;
+              el RACK es contra lo que se mide el descuento del canal. Mostrar
+              sólo el neto deja «vendimos a $177,68» sin nada con qué
+              compararse, y la comisión sin denominador. */}
           {paso === "kpis" && (
             <div className="fin-sticky" style={{ overflowX: "auto" }}>
-              <table className="fin-table" style={{ minWidth: 1260 }}>
+              <table className="fin-table" style={{ minWidth: 1340 }}>
                 <thead><tr>
-                  <th style={{ textAlign: "left", minWidth: 220 }}>{t("concept")}</th>
-                  {MONTHS.map(m => <th key={m} style={{ textAlign: "right", minWidth: 82 }}>{m}</th>)}
-                  <th style={{ textAlign: "right", minWidth: 96 }}>{tc("total")}</th>
+                  <th style={{ textAlign: "left", minWidth: 250 }}>{t("concept")}</th>
+                  {MONTHS.map(m => <th key={m} style={{ textAlign: "right", minWidth: 84 }}>{m}</th>)}
+                  <th style={{ textAlign: "right", minWidth: 100 }}>{tc("total")}</th>
                 </tr></thead>
                 <tbody>
-                  <tr><td style={{ ...TDL, fontWeight: 700 }} colSpan={14}>{t("blockVolume")}</td></tr>
-                  <tr>
-                    <td style={TDL}>{t("available")}</td>
-                    {data.meses.map(m => <td key={m.month} style={TD}>{fmtInt(n(m.disponibles))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtInt(n(data.total.disponibles))}</td>
-                  </tr>
-                  <tr>
-                    <td style={TDL}>{t("nightsRevenue")}</td>
-                    {data.meses.map(m => <td key={m.month} style={TD}>{fmtInt(n(m.noches_ingreso))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtInt(n(data.total.noches_ingreso))}</td>
-                  </tr>
-                  <tr>
-                    <td style={TDL}>{t("nightsTotal")}</td>
-                    {data.meses.map(m => <td key={m.month} style={TD}>{fmtInt(n(m.noches_totales))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtInt(n(data.total.noches_totales))}</td>
-                  </tr>
-                  <tr><td style={{ ...TDL, fontWeight: 700 }} colSpan={14}>{t("blockKpis")}</td></tr>
-                  <tr>
-                    <td style={{ ...TDL, fontWeight: 700 }}>{t("revenue")}</td>
-                    {data.meses.map(m => <td key={m.month} style={{ ...TD, fontWeight: 700 }}>{fmtUsd(n(m.ingreso))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtUsd(n(data.total.ingreso))}</td>
-                  </tr>
-                  <tr>
-                    <td style={TDL}>{t("adr")}</td>
-                    {data.meses.map(m => <td key={m.month} style={TD}>{fmtUsd(n(m.adr))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtUsd(n(data.total.adr))}</td>
-                  </tr>
-                  <tr>
-                    <td style={TDL}>{t("occupancy")}</td>
-                    {data.meses.map(m => <td key={m.month} style={TD}>{fmtPct(n(m.ocupacion))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtPct(n(data.total.ocupacion))}</td>
-                  </tr>
-                  <tr>
-                    <td style={TDL} title={t("occupancyTotalHint")}>{t("occupancyTotal")}</td>
-                    {data.meses.map(m => <td key={m.month} style={TD}>{fmtPct(n(m.ocupacion_total))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtPct(n(data.total.ocupacion_total))}</td>
-                  </tr>
-                  <tr>
-                    <td style={TDL}>{t("revpar")}</td>
-                    {data.meses.map(m => <td key={m.month} style={TD}>{fmtUsd(n(m.revpar))}</td>)}
-                    <td style={{ ...TD, fontWeight: 700 }}>{fmtUsd(n(data.total.revpar))}</td>
-                  </tr>
-                  <tr><td style={{ ...TDL, fontWeight: 700 }} colSpan={14}>{t("blockSegments")}</td></tr>
-                  {segs.map(s => (
+                  {/* ── Capacidad y ocupación ───────────────────────────── */}
+                  <tr><td style={BLQ} colSpan={14}>{t("blockCapacity")}</td></tr>
+                  <Fila l={t("available")} v={m => n(m.disponibles)}
+                        t={n(data.total.disponibles)} f={fmtInt} />
+                  <Fila l={t("nightsRevenue")} v={m => n(m.rack.noches_facturadas)}
+                        t={n(data.total.rack.noches_facturadas)} f={fmtInt} />
+                  <Fila l={t("nightsOwnRate")} sub v={m => n(m.rack.noches_tarifa_propia)}
+                        t={n(data.total.rack.noches_tarifa_propia)} f={fmtInt} />
+                  <Fila l={t("nightsComp")} v={m => n(m.rack.noches_cortesia)}
+                        t={n(data.total.rack.noches_cortesia)} f={fmtInt} />
+                  <Fila l={t("occupancy")} v={m => n(m.ocupacion)}
+                        t={n(data.total.ocupacion)} f={fmtPct} />
+                  <Fila l={t("occupancyTotal")} v={m => n(m.ocupacion_total)}
+                        t={n(data.total.ocupacion_total)} f={fmtPct}
+                        hint={t("occupancyTotalHint")} />
+
+                  {/* ── Tarifa rack ─────────────────────────────────────── */}
+                  <tr><td style={BLQ} colSpan={14}>{t("blockRackRate")}</td></tr>
+                  <Fila l={t("racWeighted")} v={m => n(m.rac_ponderado)}
+                        t={n(data.total.rack.adr_rack_sin_propias)} f={fmtUsd} />
+
+                  {/* ── Ingreso a precio rack, por segmento ─────────────── */}
+                  <tr><td style={BLQ} colSpan={14}>{t("blockRackRevenue")}</td></tr>
+                  {segs.filter(s => s.genera_ingreso).map(s => (
+                    <tr key={s.code}>
+                      <td style={TDL}>
+                        {s.nombre}
+                        {propias.has(s.code) && (
+                          <span style={{ marginLeft: 6, fontSize: 11,
+                                         color: "var(--text-secondary)" }}>
+                            ({t("ownRate")})
+                          </span>)}
+                      </td>
+                      {data.meses.map(m => (
+                        <td key={m.month} style={TD}>
+                          {fmtUsd(n(m.segmentos[s.code]?.ingreso_rack))}
+                        </td>))}
+                      <td style={{ ...TD, fontWeight: 700 }}>
+                        {fmtUsd(data.meses.reduce(
+                          (a, m) => a + n(m.segmentos[s.code]?.ingreso_rack), 0))}
+                      </td>
+                    </tr>))}
+                  <Fila l={t("totalRackRevenue")} bold v={m => n(m.rack.ingreso_rack)}
+                        t={n(data.total.rack.ingreso_rack)} f={fmtUsd} />
+
+                  {/* ── KPIs a precio rack ──────────────────────────────── */}
+                  <tr><td style={BLQ} colSpan={14}>{t("blockRackKpis")}</td></tr>
+                  <Fila l={t("adrRack")} v={m => n(m.rack.adr_rack)}
+                        t={n(data.total.rack.adr_rack)} f={fmtUsd} />
+                  <Fila l={t("adrRackNoOwn")} v={m => n(m.rack.adr_rack_sin_propias)}
+                        t={n(data.total.rack.adr_rack_sin_propias)} f={fmtUsd}
+                        hint={t("adrRackNoOwnHint")} />
+                  <Fila l={t("revparRack")} v={m => n(m.rack.revpar_rack)}
+                        t={n(data.total.rack.revpar_rack)} f={fmtUsd} />
+
+                  {/* ── Rack contra neto ────────────────────────────────── */}
+                  <tr><td style={BLQ} colSpan={14}>{t("blockRackVsNet")}</td></tr>
+                  <Fila l={t("totalNetRevenue")} bold v={m => n(m.rack.ingreso_neto)}
+                        t={n(data.total.rack.ingreso_neto)} f={fmtUsd}
+                        hint={t("totalNetRevenueHint")} />
+                  <Fila l={t("adrNet")} v={m => n(m.rack.adr_neto)}
+                        t={n(data.total.rack.adr_neto)} f={fmtUsd} />
+                  <Fila l={t("revparNet")} v={m => n(m.rack.revpar_neto)}
+                        t={n(data.total.rack.revpar_neto)} f={fmtUsd} />
+                  <Fila l={t("commissionUsd")} v={m => n(m.rack.comision_usd)}
+                        t={n(data.total.rack.comision_usd)} f={fmtUsd} />
+                  <Fila l={t("commissionPct")} v={m => n(m.rack.comision_pct)}
+                        t={n(data.total.rack.comision_pct)} f={fmtPct} />
+                  <Fila l={t("rackKept")} v={m => n(m.rack.pct_rack_retenido)}
+                        t={n(data.total.rack.pct_rack_retenido)} f={fmtPct}
+                        hint={t("rackKeptHint")} />
+
+                  {/* ── Mix de ingreso rack ─────────────────────────────── */}
+                  <tr><td style={BLQ} colSpan={14}>{t("blockRackMix")}</td></tr>
+                  {segs.filter(s => s.genera_ingreso).map(s => (
                     <tr key={s.code}>
                       <td style={TDL}>{s.nombre}</td>
                       {data.meses.map(m => (
                         <td key={m.month} style={TD}>
-                          {fmtUsd(n(m.segmentos[s.code]?.ingreso))}
+                          {fmtPct(n(m.mix_rack?.[s.code]))}
                         </td>))}
                       <td style={{ ...TD, fontWeight: 700 }}>
-                        {fmtUsd(n(data.total.segmentos[s.code]?.ingreso))}
+                        {fmtPct(n(data.total.mix_rack?.[s.code]))}
                       </td>
                     </tr>))}
                 </tbody>

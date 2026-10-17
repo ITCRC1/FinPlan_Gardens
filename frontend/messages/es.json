@@ -4417,6 +4417,27 @@
     "warnNoTariff": "Falta cargar villas o temporadas. Sin tarifario el RAC daría cero, así que la tarifa y el ingreso quedan como estaban.",
     "warnUnits": "El hotel tiene {hotel} unidades y el tarifario {tarifario}. Las del hotel son el denominador de la ocupación; las del tarifario sólo ponderan el RAC. Mientras no coincidan, la ocupación de esta pantalla no es la del tarifario.",
     "warnSeasonGap": "Estos meses tienen días sin temporada: {meses}. Esos días bajan el RAC del mes sin tarifa que los explique.",
-    "warnNoCommission": "Estos segmentos no tienen comisión cargada y se están vendiendo a RACK: {codes}."
+    "warnNoCommission": "Estos segmentos no tienen comisión cargada y se están vendiendo a RACK: {codes}.",
+    "blockCapacity": "Capacidad y ocupación",
+    "nightsOwnRate": "de las cuales, tarifa propia",
+    "nightsComp": "Noches de cortesía / uso casa",
+    "blockRackRate": "Tarifa rack",
+    "blockRackRevenue": "Ingreso a precio rack, por segmento",
+    "totalRackRevenue": "Total ingreso rack",
+    "blockRackKpis": "KPIs a precio rack",
+    "adrRack": "ADR Rack",
+    "adrRackNoOwn": "ADR Rack (sin tarifa propia)",
+    "adrRackNoOwnHint": "Saca los segmentos que no tienen RAC. Es el número que se compara contra el tarifario del año: mezclarlo con la tarifa propia hace parecer que el tarifario bajó cuando sólo se vendieron más noches largas.",
+    "revparRack": "RevPAR Rack",
+    "blockRackVsNet": "Rack contra neto",
+    "totalNetRevenue": "Total ingreso neto",
+    "totalNetRevenueHint": "Éste es el que entra al P&L y el que viaja al consolidado.",
+    "adrNet": "ADR Neto",
+    "revparNet": "RevPAR Neto",
+    "commissionUsd": "Comisión / descuento vs rack",
+    "commissionPct": "% comisión / descuento ponderado",
+    "rackKept": "% del rack retenido",
+    "rackKeptHint": "Neto ÷ rack. Es lo que queda después del canal — el número para negociar.",
+    "blockRackMix": "Mix de ingreso rack por segmento"
   }
 }

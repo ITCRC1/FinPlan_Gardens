@@ -4417,6 +4417,27 @@
     "warnNoTariff": "Villas or seasons are missing. With no tariff the RAC would be zero, so rate and revenue are left as they were.",
     "warnUnits": "The hotel has {hotel} units and the tariff has {tarifario}. The hotel's are the occupancy denominator; the tariff's only weight the RAC. While they differ, this screen's occupancy is not the tariff's.",
     "warnSeasonGap": "These months have days with no season: {meses}. Those days lower the month's RAC with no rate to explain them.",
-    "warnNoCommission": "These segments have no commission loaded and are being sold at RACK: {codes}."
+    "warnNoCommission": "These segments have no commission loaded and are being sold at RACK: {codes}.",
+    "blockCapacity": "Capacity and occupancy",
+    "nightsOwnRate": "of which, own rate",
+    "nightsComp": "Complimentary / house-use nights",
+    "blockRackRate": "Rack rate",
+    "blockRackRevenue": "Revenue at rack, by segment",
+    "totalRackRevenue": "Total rack revenue",
+    "blockRackKpis": "KPIs at rack",
+    "adrRack": "Rack ADR",
+    "adrRackNoOwn": "Rack ADR (excl. own rate)",
+    "adrRackNoOwnHint": "Leaves out the segments that have no RAC. This is the figure to compare against the year's tariff: mixing in the own-rate segments makes the tariff look lower when all that happened is more long-stay nights were sold.",
+    "revparRack": "Rack RevPAR",
+    "blockRackVsNet": "Rack versus net",
+    "totalNetRevenue": "Total net revenue",
+    "totalNetRevenueHint": "This is the one that reaches the P&L and travels to the consolidation.",
+    "adrNet": "Net ADR",
+    "revparNet": "Net RevPAR",
+    "commissionUsd": "Commission / discount vs rack",
+    "commissionPct": "% weighted commission / discount",
+    "rackKept": "% of rack kept",
+    "rackKeptHint": "Net ÷ rack. What is left after the channel — the figure you negotiate with.",
+    "blockRackMix": "Rack revenue mix by segment"
   }
 }
