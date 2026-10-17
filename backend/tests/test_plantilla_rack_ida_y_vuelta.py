@@ -18,15 +18,16 @@ from app.export.rack_rooms_xlsx import (clave_de, construir_plantilla,
 
 SEGMENTOS = [
     {"code": "AGENCIAS", "nombre": "Agencias", "propia": False,
-     "comision": 0.25,
+     # La comisión sube a mitad de año: es justo el caso que motivó el cambio.
+     "comisiones": [0.25] * 6 + [0.28] * 6,
      "noches": [25, 65, 45, 25, 20, 20, 50, 30, 20, 20, 20, 60],
      "tarifas": [0] * 12},
     {"code": "LONG_TERM", "nombre": "Long term rentals", "propia": True,
-     "comision": 0.0,
+     "comisiones": [0.0] * 12,
      "noches": [30, 15, 0, 30, 30, 30, 30, 30, 30, 30, 30, 30],
      "tarifas": [75, 100, 0, 75, 75, 75, 75, 75, 75, 75, 75, 75]},
     {"code": "CPL", "nombre": "CPL | Uso casa | Canjes", "propia": False,
-     "comision": 0.0, "noches": [0] * 12, "tarifas": [0] * 12},
+     "comisiones": [0.0] * 12, "noches": [0] * 12, "tarifas": [0] * 12},
 ]
 
 
@@ -54,14 +55,26 @@ def test_los_numeros_vuelven_IGUALES(archivo):
     assert [float(x) for x in tarifas] == [float(x) for x in SEGMENTOS[1]["tarifas"]]
 
 
-def test_la_comision_vuelve_como_fraccion(archivo):
-    """0,25 y no 25: el formato de Excel muestra «25%» pero el valor es 0,25.
+def test_la_comision_vuelve_como_fraccion_y_POR_MES(archivo):
+    """0,25 y no 25: el formato de Excel muestra «25 %» pero el valor es 0,25.
 
     Si volviera como 25, el endpoint lo rechazaría por estar fuera de rango —
     que es mejor que aplicarlo, pero igual sería una plantilla rota.
+
+    Y vuelve mes a mes: la comisión que sube a mitad de año tiene que llegar
+    como seis meses de 0,25 y seis de 0,28, no como un promedio.
     """
-    porclave = {c: com for c, com, _ in leer_plantilla(archivo)}
-    assert abs(float(porclave["AGENCIAS"]) - 0.25) < 1e-9
+    porclave = {c: meses for c, _, meses in leer_plantilla(archivo)}
+    com = [float(x) for x in porclave["AGENCIAS|COMISION"]]
+    assert com == [0.25] * 6 + [0.28] * 6
+
+
+def test_un_segmento_de_tarifa_propia_NO_trae_fila_de_comision(archivo):
+    """Su tarifa YA es la neta: traer la fila invitaría a llenarla, y el
+    importador la rechazaría después de que alguien la escribió."""
+    claves = [c for c, _, _ in leer_plantilla(archivo)]
+    assert "LONG_TERM|COMISION" not in claves
+    assert "AGENCIAS|COMISION" in claves
 
 
 def test_un_segmento_sin_tarifa_propia_NO_trae_fila_de_tarifa(archivo):
@@ -79,6 +92,8 @@ def test_la_clave_lleva_el_tipo_adentro():
     assert clave_de("LONG_TERM", "TARIFA") == "LONG_TERM|TARIFA"
     assert partir_clave("OTA") == ("OTA", "NOCHES")
     assert partir_clave("LONG_TERM|TARIFA") == ("LONG_TERM", "TARIFA")
+    assert clave_de("OTA", "COMISION") == "OTA|COMISION"
+    assert partir_clave("OTA|COMISION") == ("OTA", "COMISION")
 
 
 def test_la_clave_tolera_espacios():

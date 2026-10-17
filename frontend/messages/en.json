@@ -4462,6 +4462,8 @@
     "month": "Month",
     "before": "Before",
     "after": "After",
-    "rejected": "{n} rows cannot be applied:"
+    "rejected": "{n} rows cannot be applied:",
+    "commissionMonthlyHint": "Commission is per month. Type January and it copies to the rest of the year; then change by hand only the month that differs. A month you already changed by hand is NOT overwritten when you touch January again — it is marked in amber.",
+    "commissionVariesHint": "This segment has months with a commission different from January's. See them in tab 4 - Rate origin."
   }
 }

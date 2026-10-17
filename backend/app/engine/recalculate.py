@@ -335,16 +335,19 @@ async def aplicar_canales_rooms(session, scenario, results, rate_cards) -> bool:
         RackVilla.scenario_id == scenario.id))).scalars().all()
     temps = (await session.execute(select(RackTemporada).where(
         RackTemporada.scenario_id == scenario.id))).scalars().all()
-    coms = {c.segmento_code: (c.comision_pct, bool(c.tarifa_propia))
-            for c in (await session.execute(select(RackComision).where(
-                RackComision.scenario_id == scenario.id))).scalars()}
+    filas_com = (await session.execute(select(RackComision).where(
+        RackComision.scenario_id == scenario.id))).scalars().all()
     hay_tarifario = bool(villas and temps)
 
     for mes, r in results.items():
         delmes = por_mes.get(mes, [])
         if hay_tarifario and delmes:
+            # ⚠️ La comisión es POR MES desde la migración 145. Usar la de
+            # enero para los doce devolvería el ingreso de todo el año a la
+            # tarifa de enero, sin error y con el total cuadrando solo.
+            from app.api.rack_rooms_api import comisiones_del_mes
             d = derivar_mes(
-                villas, temps, coms,
+                villas, temps, comisiones_del_mes(filas_com, mes),
                 {f.segmento_code: f.noches for f in delmes},
                 scenario.year, mes,
                 tarifas_propias={f.segmento_code: f.tarifa for f in delmes})

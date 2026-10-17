@@ -5298,8 +5298,13 @@ export interface RackTemporadaFila {
   temporada: string; desde: string; hasta: string;
 }
 export interface RackComisionFila {
-  segmento_code: string; comision_pct: string;
-  /** Long term no tiene RAC: su tarifa se digita mes a mes. */
+  segmento_code: string;
+  /** 1-12. Son DOCE filas por segmento, una por mes. Al guardar, `undefined`
+   *  significa «es la de enero y se replica a los meses que seguían a enero». */
+  month?: number;
+  comision_pct: string;
+  /** Long term no tiene RAC: su tarifa se digita mes a mes. Es del SEGMENTO,
+   *  no del mes — va igual en las doce filas. */
   tarifa_propia: boolean;
 }
 export interface RackSegmento {

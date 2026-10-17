@@ -128,9 +128,9 @@ class RackVilla(Base):
 class RackComision(Base):
     """El % de comisión implícita de cada segmento, por escenario.
 
-    Es `Resumen Manual` B67:B73. Se llama *implícita* porque no es lo que
-    factura la agencia: es cuánto se aleja del rack el precio al que ese
-    segmento realmente vende.
+    Es `Resumen Manual` B67:B73, pero **por mes**: doce filas por segmento.
+    Se llama *implícita* porque no es lo que factura la agencia: es cuánto se
+    aleja del rack el precio al que ese segmento realmente vende.
 
     ⚠️ **Un segmento sin fila acá vende a rack**, no gratis: la ausencia se lee
     como 0% de comisión. Lo contrario —tratarla como 100%— pondría el ingreso
@@ -144,7 +144,8 @@ class RackComision(Base):
 
     __tablename__ = "rack_comisiones"
     __table_args__ = (
-        UniqueConstraint("scenario_id", "segmento_code", name="uq_rack_comision"),
+        UniqueConstraint("scenario_id", "segmento_code", "month",
+                         name="uq_rack_comision_mes"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True,
@@ -153,6 +154,19 @@ class RackComision(Base):
         String(36), ForeignKey("scenarios.id", ondelete="CASCADE"), index=True)
     hotel_id: Mapped[str] = mapped_column(String(10), index=True)
     segmento_code: Mapped[str] = mapped_column(String(30))
+    #: 1-12. Son DOCE filas por segmento, una por mes.
+    #:
+    #: Owner, 2026-10-16: *«pone el primer mes y se replica a los 12 meses y
+    #: manual se cambia el mes que probablemente cambie»*. Con una sola columna
+    #: para todo el año, un canal que cambia su comisión a mitad de año obliga
+    #: a poner un promedio — y el promedio no es el número de ningún mes: deja
+    #: el ingreso mal en direcciones opuestas y el total del año lo disimula.
+    month: Mapped[int] = mapped_column(Integer, default=1)
     #: 0.25 = 25%. No se usa si `tarifa_propia`.
     comision_pct: Mapped[Decimal] = mapped_column(Numeric(6, 4), default=Decimal("0"))
+    #: ⚠️ Es del SEGMENTO, no del mes: *Long term* no tiene RAC en enero y sí en
+    #: julio. Está repetido en las doce filas porque la fila es por mes, y el
+    #: que escribe lo pone igual en las doce —lo vigila
+    #: `test_comision_por_mes.py`—. Leerlo de un mes suelto daría distinto
+    #: según el mes que se mire.
     tarifa_propia: Mapped[bool] = mapped_column(Boolean, default=False)

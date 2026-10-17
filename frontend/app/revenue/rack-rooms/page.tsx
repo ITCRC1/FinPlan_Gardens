@@ -111,7 +111,8 @@ export default function RackRoomsPage() {
   // controlado no deja escribir «0.», ni borrar el campo para teclear otra cosa.
   const [villas, setVillas] = useState<RackVillaFila[]>([]);
   const [temps, setTemps] = useState<RackTemporadaFila[]>([]);
-  const [coms, setComs] = useState<RackComisionFila[]>([]);
+  const [coms, setComs] = useState<Record<string, Record<number, string>>>({});
+  const [propiaDe, setPropiaDe] = useState<Record<string, boolean>>({});
   const [noches, setNoches] = useState<Record<string, Record<number, string>>>({});
   const [tarifasPropias, setTarifasPropias] = useState<Record<string, Record<number, string>>>({});
 
@@ -129,9 +130,17 @@ export default function RackRoomsPage() {
     setTemps(d.temporadas.map(x => ({ ...x })));
     // Un segmento sin fila de comisión se muestra en 0% — que es como lo lee el
     // motor: sin fila se vende A RACK, no gratis. Ver `tarifa_del_segmento`.
-    const porCode = new Map(d.comisiones.map(c => [c.segmento_code, c]));
-    setComs(d.segmentos.map(s => porCode.get(s.code)
-      ?? { segmento_code: s.code, comision_pct: "0", tarifa_propia: false }));
+    // {code: {mes: '0.25'}} — doce por segmento, como texto para poder
+    // escribir «0.» sin que el campo se pelee.
+    const cc: Record<string, Record<number, string>> = {};
+    const propia: Record<string, boolean> = {};
+    for (const s of d.segmentos) { cc[s.code] = {}; propia[s.code] = false; }
+    for (const c of d.comisiones) {
+      (cc[c.segmento_code] ??= {})[c.month ?? 1] = String(n(c.comision_pct));
+      if (c.tarifa_propia) propia[c.segmento_code] = true;
+    }
+    setComs(cc);
+    setPropiaDe(propia);
     const nn: Record<string, Record<number, string>> = {};
     const tp: Record<string, Record<number, string>> = {};
     for (const s of d.segmentos) { nn[s.code] = {}; tp[s.code] = {}; }
@@ -171,8 +180,25 @@ export default function RackRoomsPage() {
   const locked = !!data?.locked;
   const segs = data?.segmentos ?? [];
   const propias = useMemo(
-    () => new Set(coms.filter(c => c.tarifa_propia).map(c => c.segmento_code)),
-    [coms]);
+    () => new Set(Object.entries(propiaDe).filter(([, v]) => v).map(([k]) => k)),
+    [propiaDe]);
+
+  /** Lo que se manda al guardar: una fila por segmento y mes. */
+  const comisionesAEnviar = useCallback((): RackComisionFila[] =>
+    segs.flatMap(s => MONTHS.map((_, mi) => ({
+      segmento_code: s.code, month: mi + 1,
+      comision_pct: String(n(coms[s.code]?.[mi + 1])),
+      tarifa_propia: !!propiaDe[s.code],
+    }))), [segs, coms, propiaDe]);
+
+  /** ¿Este segmento tiene algún mes distinto a enero? Se muestra al lado del
+   *  campo de enero: sin eso, cambiar enero parecería no haber hecho nada en
+   *  los meses que alguien había ajustado a mano. */
+  const mesesDistintos = useCallback((code: string) => {
+    const ene = n(coms[code]?.[1]);
+    return MONTHS.map((_, mi) => mi + 1).filter(
+      m => m > 1 && n(coms[code]?.[m]) !== ene);
+  }, [coms]);
 
   // ── Pegar desde Excel ──────────────────────────────────────────────────────
   //
@@ -308,12 +334,13 @@ export default function RackRoomsPage() {
     // viajes para escribir «150».
     const id = setTimeout(async () => {
       setCalculando(true);
-      try { setPrevio(await previewRackRooms(scenarioId, loTecleado(), coms)); }
+      try { setPrevio(await previewRackRooms(scenarioId, loTecleado(),
+                                             comisionesAEnviar())); }
       catch { /* el cuadro se queda como estaba; el error sale al guardar */ }
       finally { setCalculando(false); }
     }, 600);
     return () => clearTimeout(id);
-  }, [dirty, scenarioId, loTecleado, coms]);
+  }, [dirty, scenarioId, loTecleado, comisionesAEnviar]);
 
   /** Lo que se MUESTRA: la previsualización si hay cambios, si no lo guardado. */
   const vista = (dirty && previo) ? previo : data;
@@ -322,7 +349,7 @@ export default function RackRoomsPage() {
     await guardar(async () => {
       // Las comisiones primero: la tarifa sale de ellas, así que guardar las
       // noches antes las derivaría con la comisión vieja.
-      await saveRackComisiones(scenarioId, coms);
+      await saveRackComisiones(scenarioId, comisionesAEnviar());
       return saveRackNoches(scenarioId, loTecleado());
     });
     setDirty(false);
@@ -782,9 +809,7 @@ export default function RackRoomsPage() {
                   </tr></thead>
                   <tbody>
                     {segs.map((s, fi) => {
-                      const com = coms.find(c => c.segmento_code === s.code);
                       const propia = propias.has(s.code);
-                      const ci = coms.findIndex(c => c.segmento_code === s.code);
                       return (
                         <React.Fragment key={s.code}>
                           {/* El nombre del segmento + su comisión, que es el
@@ -800,15 +825,35 @@ export default function RackRoomsPage() {
                                 </span>)}
                             </td>
                             <td style={{ ...TD, paddingTop: 12 }}>
-                              {s.genera_ingreso && !propia && ci >= 0 && (
-                                <input value={com?.comision_pct ?? "0"} disabled={locked}
-                                       style={{ ...inpNum, width: 62 }}
-                                       title={t("commissionHint")}
-                                       onChange={e => {
-                                         setComs(xs => xs.map((y, j) =>
-                                           j === ci ? { ...y, comision_pct: e.target.value } : y));
-                                         setDirty(true);
-                                       }} />)}
+                              {s.genera_ingreso && !propia && (
+                                <>
+                                  <input value={coms[s.code]?.[1] ?? "0"} disabled={locked}
+                                         style={{ ...inpNum, width: 62 }}
+                                         title={t("commissionHint")}
+                                         onChange={e => {
+                                           // Enero arrastra a los meses que
+                                           // seguían a enero; los cambiados a
+                                           // mano se quedan. Misma regla que el
+                                           // servidor (`replicar_desde_enero`).
+                                           const pct = e.target.value;
+                                           setComs(v => {
+                                             const antes = v[s.code]?.[1];
+                                             const fila = { ...(v[s.code] ?? {}) };
+                                             for (let m = 1; m <= 12; m++) {
+                                               if (m === 1 || antes === undefined
+                                                   || fila[m] === antes) fila[m] = pct;
+                                             }
+                                             return { ...v, [s.code]: fila };
+                                           });
+                                           setDirty(true);
+                                         }} />
+                                  {mesesDistintos(s.code).length > 0 && (
+                                    <span title={t("commissionVariesHint")}
+                                          style={{ marginLeft: 5, fontSize: 10.5,
+                                                   color: "var(--warning, #F59E0B)" }}>
+                                      +{mesesDistintos(s.code).length}
+                                    </span>)}
+                                </>)}
                               {propia && (
                                 <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
                                   {t("ownRate")}
@@ -929,38 +974,64 @@ export default function RackRoomsPage() {
               <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
                 {t("commissionsTitle")}
               </h3>
-              <table className="fin-table" style={{ minWidth: 560, marginBottom: 18 }}>
-                <thead><tr>
-                  <th style={{ textAlign: "left", minWidth: 210 }}>{t("segment")}</th>
-                  <th style={{ textAlign: "right" }}>{t("commission")}</th>
-                  <th style={{ textAlign: "left" }}>{t("ownRate")}</th>
-                </tr></thead>
-                <tbody>
-                  {coms.map((c, i) => {
-                    const s = segs.find(x => x.code === c.segmento_code);
-                    return (
-                      <tr key={c.segmento_code}>
-                        <td style={TDL}>{s?.nombre ?? c.segmento_code}</td>
-                        <td style={TD}>
-                          <input value={c.comision_pct} disabled={locked} style={inpNum}
-                                 onChange={e => setComs(xs => xs.map((y, j) =>
-                                   j === i ? { ...y, comision_pct: e.target.value } : y))} />
-                          <span style={{ marginLeft: 6, fontSize: 11,
-                                         color: "var(--text-secondary)" }}>
-                            = {fmtPct(n(c.comision_pct))}
-                          </span>
-                        </td>
-                        <td style={TDL}>
-                          <input type="checkbox" checked={c.tarifa_propia} disabled={locked}
-                                 onChange={e => setComs(xs => xs.map((y, j) =>
-                                   j === i ? { ...y, tarifa_propia: e.target.checked } : y))} />
-                        </td>
-                      </tr>);
-                  })}
-                </tbody>
-              </table>
+              <p style={{ color: "var(--text-secondary)", fontSize: 12.5,
+                          marginBottom: 8 }}>
+                {t("commissionMonthlyHint")}
+              </p>
+              <div className="fin-sticky" style={{ overflowX: "auto", marginBottom: 14 }}>
+                <table className="fin-table" style={{ minWidth: 1200 }}>
+                  <thead><tr>
+                    <th style={{ textAlign: "left", minWidth: 220 }}>{t("segment")}</th>
+                    {MONTHS.map(m => <th key={m} style={{ textAlign: "right", minWidth: 74 }}>{m}</th>)}
+                    <th style={{ textAlign: "left", minWidth: 110 }}>{t("ownRate")}</th>
+                  </tr></thead>
+                  <tbody>
+                    {segs.filter(x => x.genera_ingreso).map(x => {
+                      const propia = propias.has(x.code);
+                      const ene = n(coms[x.code]?.[1]);
+                      return (
+                        <tr key={x.code}>
+                          <td style={TDL}>{x.nombre}</td>
+                          {MONTHS.map((_, mi) => {
+                            const mes = mi + 1;
+                            const difiere = mes > 1 && n(coms[x.code]?.[mes]) !== ene;
+                            return (
+                              <td key={mi} style={TD}>
+                                {propia ? <span style={{ fontSize: 11,
+                                                         color: "var(--text-secondary)" }}>—</span>
+                                 : <input value={coms[x.code]?.[mes] ?? "0"}
+                                          disabled={locked}
+                                          style={{ ...inpNum, width: 60,
+                                                   // El mes que se apartó de
+                                                   // enero se marca: si no, un
+                                                   // ajuste puntual queda
+                                                   // invisible entre doce
+                                                   // celdas iguales.
+                                                   borderColor: difiere
+                                                     ? "var(--warning, #F59E0B)"
+                                                     : "var(--border-medium)" }}
+                                          onChange={e => {
+                                            setComs(v => ({ ...v,
+                                              [x.code]: { ...(v[x.code] ?? {}),
+                                                          [mes]: e.target.value } }));
+                                            setDirty(true);
+                                          }} />}
+                              </td>);
+                          })}
+                          <td style={TDL}>
+                            <input type="checkbox" checked={propia} disabled={locked}
+                                   onChange={e => {
+                                     setPropiaDe(v => ({ ...v, [x.code]: e.target.checked }));
+                                     setDirty(true);
+                                   }} />
+                          </td>
+                        </tr>);
+                    })}
+                  </tbody>
+                </table>
+              </div>
               <button disabled={locked || saving} style={{ ...btn(!locked && !saving), marginBottom: 20 }}
-                      onClick={() => guardar(() => saveRackComisiones(scenarioId, coms))}>
+                      onClick={() => guardar(() => saveRackComisiones(scenarioId, comisionesAEnviar()))}>
                 {saving ? tc("saving") : tc("save")}
               </button>
 

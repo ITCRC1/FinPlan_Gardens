@@ -230,11 +230,20 @@ def test_la_previsualizacion_NO_escribe():
         assert escribe not in fuente, escribe
 
 
-def test_la_previsualizacion_expulsa_lo_que_toco():
-    """Pisa la comisión sobre objetos de la sesión para calcular. Si no se
-    expulsan, ese cambio viaja a la base en el `commit` de cualquier otra ruta
-    — y nadie lo relacionaría con haber mirado una previsualización."""
-    assert "db.expunge(" in inspect.getsource(api.preview)
+def test_la_previsualizacion_NO_toca_filas_de_la_sesion():
+    """Trabaja sobre COPIAS, no sobre las filas de la base.
+
+    La primera versión le cambiaba el campo a la fila real y la expulsaba
+    después. Funcionaba, pero dejaba la pantalla a un descuido de volverse un
+    guardado silencioso: basta un `return` temprano, una excepción o una rama
+    nueva antes del `expunge` para que el cambio viaje en el `commit` de otra
+    ruta. Con copias no hay nada que expulsar.
+    """
+    fuente = inspect.getsource(api.preview)
+    assert "_ComisionEnMemoria(" in fuente
+    for muta in ("fila.comision_pct =", "fila.tarifa_propia =",
+                 "c.comision_pct =", "db.expunge("):
+        assert muta not in fuente, muta
 
 
 def test_la_previsualizacion_usa_el_MISMO_armado_que_el_GET():

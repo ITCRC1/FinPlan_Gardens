@@ -97,6 +97,66 @@ class _FilaEnMemoria:
         self.ingreso = ingreso
 
 
+class _ComisionEnMemoria:
+    """Una fila de `rack_comisiones` que no está en la sesión.
+
+    Existe para que la previsualización no tenga que tocar —y después
+    expulsar— objetos de la base. Un objeto suelto no se puede guardar por
+    accidente.
+    """
+    __slots__ = ("segmento_code", "month", "comision_pct", "tarifa_propia")
+
+    def __init__(self, segmento_code, month, comision_pct, tarifa_propia):
+        self.segmento_code = segmento_code
+        self.month = month
+        self.comision_pct = comision_pct
+        self.tarifa_propia = tarifa_propia
+
+
+def replicar_desde_enero(actual: dict[int, Decimal], pct: Decimal) -> dict[int, Decimal]:
+    """Enero pasa a `pct` y arrastra a los meses que seguían a enero.
+
+    Owner, 2026-10-16: *«pone el primer mes y se replica a los 12 meses y
+    manual se cambia el mes que probablemente cambie»*.
+
+    ⚠️ **No arrastra a los que alguien cambió a mano.** El caso es éste: enero
+    en 25 %, julio corregido a 28 % porque la agencia subió, y después enero se
+    toca otra vez —a 26 %— por otra razón. Con una réplica total, julio vuelve
+    a 26 % en silencio: no falla, no avisa, y el total del año sigue cuadrando
+    consigo mismo.
+
+    **Pura a propósito**: la usan el guardado y la previsualización, y las dos
+    tienen que replicar igual. Si la pantalla mostrara una réplica y el botón
+    hiciera otra, lo que se ve no sería lo que se guarda.
+    """
+    antes = actual.get(1)
+    fuera = dict(actual)
+    for mes in range(1, 13):
+        if mes == 1 or antes is None or fuera.get(mes) == antes:
+            fuera[mes] = pct
+    return fuera
+
+
+def comisiones_del_mes(coms, mes: int) -> dict:
+    """`{code: (pct, tarifa_propia)}` para ese mes, como lo pide el motor.
+
+    ⚠️ **Un segmento sin fila para ese mes vende A RACK**, no gratis: la
+    ausencia se lee como 0 %. Lo contrario —tratarla como 100 %— pondría el
+    ingreso en cero sin que nada avise.
+
+    `tarifa_propia` es del SEGMENTO y no del mes: se toma de cualquier fila que
+    lo declare, porque *Long term* no tiene RAC en enero y sí en julio.
+    """
+    propias = {c.segmento_code for c in coms if c.tarifa_propia}
+    fuera = {c.segmento_code: (c.comision_pct, c.segmento_code in propias)
+             for c in coms if int(c.month or 1) == mes}
+    # Los que tienen tarifa propia tienen que estar aunque no tengan fila en
+    # ESE mes: si no, el motor los trataría como un segmento de rack normal.
+    for code in propias:
+        fuera.setdefault(code, (Decimal("0"), True))
+    return fuera
+
+
 async def _escenario(db: AsyncSession, scenario_id: str) -> Scenario:
     esc = await db.get(Scenario, scenario_id)
     if not esc:
@@ -160,8 +220,6 @@ async def _rederivar(db: AsyncSession, esc: Scenario, user=None) -> int:
     villas, temps, coms = await _cargar(db, esc)
     if not (villas and temps):
         return 0
-    comisiones = {c.segmento_code: (c.comision_pct, bool(c.tarifa_propia))
-                  for c in coms}
     filas = (await db.execute(select(CanalRoomsEntry).where(
         CanalRoomsEntry.scenario_id == esc.id))).scalars().all()
     por_mes: dict[int, list] = {}
@@ -170,7 +228,7 @@ async def _rederivar(db: AsyncSession, esc: Scenario, user=None) -> int:
 
     tocadas = 0
     for mes, delmes in por_mes.items():
-        d = derivar_mes(villas, temps, comisiones,
+        d = derivar_mes(villas, temps, comisiones_del_mes(coms, mes),
                         {f.segmento_code: f.noches for f in delmes},
                         esc.year, mes,
                         tarifas_propias={f.segmento_code: f.tarifa for f in delmes})
@@ -207,8 +265,6 @@ def _armar(esc, segs, villas, temps, coms, filas, unidades_hotel) -> dict:
     """
     scenario_id = esc.id
     genera = {s.code: bool(s.genera_ingreso) for s in segs}
-    comisiones = {c.segmento_code: (c.comision_pct, bool(c.tarifa_propia))
-                  for c in coms}
     por_mes: dict[int, list] = {m: [] for m in MESES}
     for f in filas:
         if 1 <= int(f.month) <= 12:
@@ -225,7 +281,7 @@ def _armar(esc, segs, villas, temps, coms, filas, unidades_hotel) -> dict:
 
         # Lo derivado se MUESTRA sin escribir: un `GET` no tiene por qué tocar
         # la base. Lo que se guarda lo guardan los `PUT`, vía `_rederivar`.
-        derivado = (derivar_mes(villas, temps, comisiones,
+        derivado = (derivar_mes(villas, temps, comisiones_del_mes(coms, m),
                                 {f.segmento_code: f.noches for f in delmes},
                                 esc.year, m,
                                 tarifas_propias={f.segmento_code: f.tarifa
@@ -332,7 +388,10 @@ def _armar(esc, segs, villas, temps, coms, filas, unidades_hotel) -> dict:
                    for v in villas],
         "temporadas": [{"temporada": t.temporada, "desde": t.desde.isoformat(),
                         "hasta": t.hasta.isoformat()} for t in temps],
+        # Una fila por segmento y mes. La pantalla muestra enero y marca los
+        # meses que se apartan — ver `guardar_comisiones`.
         "comisiones": [{"segmento_code": c.segmento_code,
+                        "month": int(c.month or 1),
                         "comision_pct": _d(c.comision_pct),
                         "tarifa_propia": bool(c.tarifa_propia)} for c in coms],
         "segmentos": [{"code": s.code, "nombre": s.nombre, "orden": s.orden,
@@ -354,7 +413,8 @@ def _armar(esc, segs, villas, temps, coms, filas, unidades_hotel) -> dict:
             "meses_sin_temporada": [x["month"] for x in meses
                                     if x["dias_sin_temporada"]],
             "segmentos_sin_comision": sorted(
-                {s.code for s in segs if s.genera_ingreso} - set(comisiones)),
+                {s.code for s in segs if s.genera_ingreso}
+                - set(comisiones_del_mes(coms, 1))),
         },
     }
 
@@ -461,34 +521,81 @@ class ComisionBody(BaseModel):
     segmento_code: str
     comision_pct: Decimal = Decimal("0")
     tarifa_propia: bool = False
+    #: 1-12, o `None` = «es la de enero y se replica al resto del año».
+    month: int | None = None
 
 
 @router.put("/rack-rooms/{scenario_id}/comisiones/")
 async def guardar_comisiones(scenario_id: str, body: list[ComisionBody],
                              db: AsyncSession = Depends(get_db),
                              user=Depends(get_current_user)):
+    """La comisión de cada segmento, por mes.
+
+    Owner, 2026-10-16: *«pone el primer mes y se replica a los 12 meses y
+    manual se cambia el mes que probablemente cambie»*.
+
+    ## Cómo se replica, y qué NO pisa
+
+    Una fila **sin `month`** es enero y se replica al resto del año — pero
+    **sólo a los meses que todavía valían lo mismo que enero**. Los que alguien
+    cambió a mano se quedan como están.
+
+    ⚠️ **Replicar a ciegas sería pérdida de datos sin aviso.** El caso es éste:
+    se pone enero en 25 %, se corrige julio a 28 % porque la agencia subió, y
+    después se vuelve a tocar enero —a 26 %— por otra razón. Con una réplica
+    total, julio vuelve a 26 % en silencio y el ingreso de ese mes cambia sin
+    que nadie lo haya pedido. No falla, no avisa, y el total del año sigue
+    cuadrando consigo mismo.
+
+    Una fila **con `month`** toca ese mes y nada más. Es el camino del cambio
+    manual, y el de la grilla de doce columnas.
+
+    ## `tarifa_propia` es del SEGMENTO
+
+    Se escribe igual en los doce meses: *Long term* no tiene RAC en enero y sí
+    en julio. Leerlo de un mes suelto daría distinto según el mes que se mire.
+    """
     esc = await candado(db, scenario_id)
     validos = {s.code for s in await _segmentos(db, esc.hotel_id)}
     for c in body:
         if c.segmento_code not in validos:
             raise ErrorApi(422, "canal.segmento_desconocido", code=c.segmento_code)
+        if c.month is not None and not 1 <= c.month <= 12:
+            raise ErrorApi(400, "mes.fuera_de_rango")
         # Fuera de [0,1) no es un typo inocente: con 1 el ingreso queda en cero
         # y por encima se vuelve negativo — las dos cosas cuadran solas.
         if not (Decimal("0") <= c.comision_pct < Decimal("1")):
             raise ErrorApi(422, "rack.comision_fuera_de_rango",
                            code=c.segmento_code, pct=str(c.comision_pct))
 
-    actuales = {c.segmento_code: c for c in (await db.execute(
-        select(RackComision).where(
-            RackComision.scenario_id == scenario_id))).scalars().all()}
+    filas = (await db.execute(select(RackComision).where(
+        RackComision.scenario_id == scenario_id))).scalars().all()
+    por_clave = {(f.segmento_code, int(f.month or 1)): f for f in filas}
+
+    def _fila(code: str, mes: int) -> RackComision:
+        f = por_clave.get((code, mes))
+        if f is None:
+            f = RackComision(scenario_id=scenario_id, hotel_id=esc.hotel_id,
+                             segmento_code=code, month=mes)
+            db.add(f)
+            por_clave[(code, mes)] = f
+        return f
+
     for c in body:
-        fila = actuales.get(c.segmento_code)
-        if fila is None:
-            fila = RackComision(scenario_id=scenario_id, hotel_id=esc.hotel_id,
-                                segmento_code=c.segmento_code)
-            db.add(fila)
-        fila.comision_pct = c.comision_pct
-        fila.tarifa_propia = c.tarifa_propia
+        if c.month is not None:
+            # Un mes puntual: el cambio manual.
+            f = _fila(c.segmento_code, c.month)
+            f.comision_pct = c.comision_pct
+        else:
+            # Enero manda y arrastra a los que seguían a enero.
+            actual = {m: Decimal(str(por_clave[(c.segmento_code, m)].comision_pct))
+                      for m in MESES if (c.segmento_code, m) in por_clave}
+            for mes, pct in replicar_desde_enero(actual, c.comision_pct).items():
+                _fila(c.segmento_code, mes).comision_pct = pct
+        # Del segmento, no del mes: igual en los doce.
+        for mes in MESES:
+            _fila(c.segmento_code, mes).tarifa_propia = c.tarifa_propia
+
     await db.flush()
     await _rederivar(db, esc, user)
     await db.commit()
@@ -585,28 +692,35 @@ async def preview(scenario_id: str, body: PreviewBody,
     unidades_hotel = await _unidades_del_hotel(db, esc)
     validos = {s.code for s in segs}
 
-    # Las comisiones que vengan PISAN a las guardadas; las que no vengan se
-    # quedan como están. Así se puede previsualizar un cambio de comisión sin
-    # tener que mandar las siete.
-    if body.comisiones:
-        porcode = {c.segmento_code: c for c in coms}
-        for c in body.comisiones:
-            if c.segmento_code not in validos:
-                raise ErrorApi(422, "canal.segmento_desconocido", code=c.segmento_code)
-            fila = porcode.get(c.segmento_code)
-            if fila is None:
-                fila = RackComision(scenario_id=scenario_id, hotel_id=esc.hotel_id,
-                                    segmento_code=c.segmento_code)
-                coms = [*coms, fila]
-                porcode[c.segmento_code] = fila
-            fila.comision_pct = c.comision_pct
-            fila.tarifa_propia = c.tarifa_propia
-    # ⚠️ `coms` trae objetos de la sesión y arriba se les cambió un campo. Se
-    # EXPULSAN para que ese cambio no viaje a la base en el próximo `commit`
-    # de otra ruta: una previsualización que guarda es peor que ninguna.
+    # ⚠️ Se trabaja sobre COPIAS, no sobre las filas de la sesión. Cambiarle un
+    # campo a una fila de la base y confiar en expulsarla después es una
+    # previsualización a un descuido de volverse un guardado silencioso.
+    pcts: dict[str, dict[int, Decimal]] = {}
+    propia_de: dict[str, bool] = {}
     for c in coms:
-        if c in db:
-            db.expunge(c)
+        pcts.setdefault(c.segmento_code, {})[int(c.month or 1)] = Decimal(
+            str(c.comision_pct or 0))
+        propia_de[c.segmento_code] = propia_de.get(
+            c.segmento_code, False) or bool(c.tarifa_propia)
+
+    # Las comisiones que vengan PISAN a las guardadas; las que no vengan se
+    # quedan como están. Así se puede previsualizar un cambio sin mandar las
+    # siete. La REGLA de réplica es la misma del guardado (`replicar_desde_enero`).
+    for c in body.comisiones:
+        if c.segmento_code not in validos:
+            raise ErrorApi(422, "canal.segmento_desconocido", code=c.segmento_code)
+        if c.month is not None and not 1 <= c.month <= 12:
+            raise ErrorApi(400, "mes.fuera_de_rango")
+        actual = pcts.setdefault(c.segmento_code, {})
+        if c.month is None:
+            pcts[c.segmento_code] = replicar_desde_enero(actual, c.comision_pct)
+        else:
+            actual[c.month] = c.comision_pct
+        propia_de[c.segmento_code] = c.tarifa_propia
+
+    coms = [_ComisionEnMemoria(code, mes, meses.get(mes, Decimal("0")),
+                               propia_de.get(code, False))
+            for code, meses in pcts.items() for mes in range(1, 13)]
 
     guardadas = {(f.segmento_code, f.month): f for f in (await db.execute(
         select(CanalRoomsEntry).where(
@@ -659,15 +773,19 @@ async def bajar_plantilla(scenario_id: str, db: AsyncSession = Depends(get_db),
     por_seg: dict[tuple[str, int], dict] = {}
     for e in cuadro["entradas"]:
         por_seg[(e["segmento_code"], int(e["month"]))] = e
-    comis = {c["segmento_code"]: c for c in cuadro["comisiones"]}
+    comis: dict[tuple[str, int], dict] = {
+        (c["segmento_code"], int(c["month"])): c for c in cuadro["comisiones"]}
+    propia_de = {c["segmento_code"] for c in cuadro["comisiones"]
+                 if c["tarifa_propia"]}
 
     segmentos = []
     for s in cuadro["segmentos"]:
-        c = comis.get(s["code"], {})
-        propia = bool(c.get("tarifa_propia"))
+        propia = s["code"] in propia_de
         segmentos.append({
             "code": s["code"], "nombre": s["nombre"], "propia": propia,
-            "comision": float(c.get("comision_pct") or 0),
+            "comisiones": [
+                float(comis.get((s["code"], m), {}).get("comision_pct") or 0)
+                for m in MESES],
             "noches": [float(por_seg.get((s["code"], m), {}).get("noches") or 0)
                        for m in MESES],
             "tarifas": [float(por_seg.get((s["code"], m), {}).get("tarifa") or 0)
@@ -741,9 +859,10 @@ async def subir_plantilla(scenario_id: str, archivo: UploadFile = File(...),
         raise ErrorApi(422, "rack.archivo_ilegible")
 
     segs = {s.code: s for s in await _segmentos(db, esc.hotel_id)}
-    coms = {c.segmento_code: c for c in (await db.execute(select(RackComision).where(
-        RackComision.scenario_id == scenario_id))).scalars().all()}
-    propias = {k for k, c in coms.items() if c.tarifa_propia}
+    filas_com = (await db.execute(select(RackComision).where(
+        RackComision.scenario_id == scenario_id))).scalars().all()
+    coms = {(c.segmento_code, int(c.month or 1)): c for c in filas_com}
+    propias = {c.segmento_code for c in filas_com if c.tarifa_propia}
     actuales = {(f.segmento_code, f.month): f for f in (await db.execute(
         select(CanalRoomsEntry).where(
             CanalRoomsEntry.scenario_id == scenario_id))).scalars().all()}
@@ -761,7 +880,7 @@ async def subir_plantilla(scenario_id: str, archivo: UploadFile = File(...),
         except (InvalidOperation, ValueError):
             raise ValueError(str(v))
 
-    for clave, com_cruda, meses in filas_archivo:
+    for clave, _ignorado, meses in filas_archivo:
         code, tipo = partir_clave(clave)
         if code not in segs:
             rechazos.append({"clave": clave,
@@ -778,34 +897,11 @@ async def subir_plantilla(scenario_id: str, archivo: UploadFile = File(...),
                                        "su tarifa sale del tarifario RAC"})
             continue
 
-        # La comisión, una por segmento y sólo en su fila de noches.
-        if tipo == "NOCHES" and code not in propias:
-            try:
-                pct = _num(com_cruda)
-            except ValueError as e:
-                rechazos.append({"clave": clave, "campo": "% Comisión",
-                                 "motivo": f"«{e}» no es un número"})
-                pct = None
-            if pct is not None:
-                if not (Decimal("0") <= pct < Decimal("1")):
-                    rechazos.append({"clave": clave, "campo": "% Comisión",
-                                     "motivo": f"{pct} está fuera de 0 a 1 "
-                                               f"(0.25 = 25%)"})
-                else:
-                    fila = coms.get(code)
-                    antes = Decimal(str(fila.comision_pct)) if fila else Decimal("0")
-                    if antes != pct:
-                        cambios.append({"segmento": segs[code].nombre,
-                                        "campo": "% Comisión",
-                                        "antes": str(antes), "ahora": str(pct)})
-                        if aplicar:
-                            if fila is None:
-                                fila = RackComision(scenario_id=scenario_id,
-                                                    hotel_id=esc.hotel_id,
-                                                    segmento_code=code)
-                                db.add(fila)
-                                coms[code] = fila
-                            fila.comision_pct = pct
+        if tipo == "COMISION" and code in propias:
+            rechazos.append({"clave": clave,
+                             "motivo": "este segmento vende a su tarifa propia: "
+                                       "no tiene comisión sobre el rack"})
+            continue
 
         for i, bruto in enumerate(meses):
             mes = i + 1
@@ -821,6 +917,29 @@ async def subir_plantilla(scenario_id: str, archivo: UploadFile = File(...),
                 rechazos.append({"clave": clave, "mes": mes,
                                  "motivo": "no puede ser negativo"})
                 continue
+            if tipo == "COMISION":
+                if not (Decimal("0") <= valor < Decimal("1")):
+                    rechazos.append({"clave": clave, "mes": mes,
+                                     "motivo": f"{valor} está fuera de 0 a 1 "
+                                               f"(0.25 = 25%)"})
+                    continue
+                fila = coms.get((code, mes))
+                antes = Decimal(str(fila.comision_pct)) if fila else Decimal("0")
+                if antes == valor:
+                    continue
+                cambios.append({"segmento": segs[code].nombre, "mes": mes,
+                                "campo": "% Comisión", "antes": str(antes),
+                                "ahora": str(valor)})
+                if aplicar:
+                    if fila is None:
+                        fila = RackComision(scenario_id=scenario_id,
+                                            hotel_id=esc.hotel_id,
+                                            segmento_code=code, month=mes)
+                        db.add(fila)
+                        coms[(code, mes)] = fila
+                    fila.comision_pct = valor
+                continue
+
             fila = actuales.get((code, mes))
             campo = "Noches" if tipo == "NOCHES" else "Tarifa propia"
             antes = Decimal(str(

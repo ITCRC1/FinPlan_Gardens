@@ -14,8 +14,11 @@ alguien antes de subirlo— que celda por celda en una pantalla.
 
 Se editan **dos cosas**, las mismas dos que se digitan en el libro del owner:
 
-    % Comisión        una por segmento (en el libro es `B67:B73`)
     Noches            por segmento y mes (filas 8, 14, 20… del libro)
+    % Comisión        por segmento Y MES — en el libro es una sola columna
+                      (`B67:B73`), acá son doce. Owner, 2026-10-16: *«pone el
+                      primer mes y se replica a los 12 meses y manual se cambia
+                      el mes que probablemente cambie»*.
 
 y, sólo para los segmentos sin tarifario, la **tarifa propia** mes a mes.
 
@@ -62,7 +65,8 @@ FILA_ENCABEZADO = 8
 
 #: Lo que dice la columna «Qué». Es texto para el humano; el apareo va por
 #: `clave`, que trae el tipo adentro.
-ETIQUETA = {"NOCHES": "Noches", "TARIFA": "Tarifa propia $"}
+ETIQUETA = {"NOCHES": "Noches", "COMISION": "% Comisión",
+            "TARIFA": "Tarifa propia $"}
 
 
 def clave_de(code: str, tipo: str) -> str:
@@ -96,8 +100,8 @@ def construir_plantilla(
     # instrucción que no se lee.
     ws["A1"] = f"Rooms por segmento — {hotel} · {escenario} {anio}"
     ws["A1"].font = font(bold=True, size=13)
-    ws["A2"] = ("Escribí las NOCHES de cada segmento, mes por mes, y el "
-                "% DE COMISIÓN del segmento. Son las únicas celdas editables.")
+    ws["A2"] = ("Escribí las NOCHES y el % DE COMISIÓN de cada segmento, mes "
+                "por mes. Son las únicas celdas editables.")
     ws["A3"] = ("Una celda VACÍA deja el valor como está. Para poner cero, "
                 "escribí 0.")
     ws["A4"] = ("El ingreso, la tarifa promedio y la ocupación NO se escriben: "
@@ -132,8 +136,12 @@ def construir_plantilla(
     # ── Las filas ────────────────────────────────────────────────────────────
     r = FILA_ENCABEZADO
     for s in segmentos:
-        for tipo in ("NOCHES", "TARIFA"):
+        for tipo in ("NOCHES", "COMISION", "TARIFA"):
             if tipo == "TARIFA" and not s.get("propia"):
+                continue
+            # Un segmento de tarifa propia no tiene comisión sobre el rack:
+            # su tarifa YA es la neta. Traer la fila invitaría a llenarla.
+            if tipo == "COMISION" and s.get("propia"):
                 continue
             r += 1
             ws.cell(r, COL_CLAVE, clave_de(s["code"], tipo)).font = font(
@@ -142,21 +150,16 @@ def construir_plantilla(
                 bold=(tipo == "NOCHES"))
             ws.cell(r, COL_QUE, ETIQUETA[tipo]).font = font(size=9,
                                                             color="4A5568")
-            if tipo == "NOCHES":
-                # La comisión va UNA vez por segmento, en su fila de noches.
-                # Los de tarifa propia no la llevan: su tarifa ya es la neta.
-                if not s.get("propia"):
-                    cc = ws.cell(r, COL_COMISION, s.get("comision"))
-                    cc.number_format = "0.00%"
-                    cc.fill = fill("EBF8FF")
-                    unlock(cc)
-                else:
-                    ws.cell(r, COL_COMISION, "tarifa propia").font = font(
-                        size=9, italic=True, color="718096")
-            valores = s["noches"] if tipo == "NOCHES" else s["tarifas"]
+            if tipo == "TARIFA":
+                ws.cell(r, COL_COMISION, "tarifa propia").font = font(
+                    size=9, italic=True, color="718096")
+            valores = {"NOCHES": s["noches"], "COMISION": s["comisiones"],
+                       "TARIFA": s["tarifas"]}[tipo]
+            formato = {"NOCHES": "#,##0", "COMISION": "0.00%",
+                       "TARIFA": "#,##0.00"}[tipo]
             for i in range(12):
                 cel = ws.cell(r, COL_ENE + i, valores[i])
-                cel.number_format = "#,##0" if tipo == "NOCHES" else "#,##0.00"
+                cel.number_format = formato
                 cel.fill = fill("EBF8FF")
                 unlock(cel)
             tot = ws.cell(r, COL_TOTAL)
@@ -222,7 +225,10 @@ def leer_plantilla(crudo: bytes) -> list[tuple[str, object, list]]:
         raise ValueError("el archivo no tiene el encabezado de la plantilla")
 
     c_clave = cab.index("clave")
-    c_com = cab.index("% comisión") if "% comisión" in cab else None
+    # La comisión dejó de ser una columna: es una FILA por segmento, igual que
+    # las noches. Se devuelve `None` para no romper a quien ya desempaqueta
+    # tres valores.
+    c_com = None
     # Los meses se ubican por su rótulo: si alguien mete una columna en el
     # medio, el archivo sigue subiendo igual.
     c_meses = []
@@ -239,7 +245,7 @@ def leer_plantilla(crudo: bytes) -> list[tuple[str, object, list]]:
         clave = str(fila[c_clave] or "").strip()
         if not clave:
             continue
-        com = fila[c_com] if (c_com is not None and c_com < len(fila)) else None
+        com = None
         meses = [fila[c] if c < len(fila) else None for c in c_meses]
         fuera.append((clave, com, meses))
     return fuera
