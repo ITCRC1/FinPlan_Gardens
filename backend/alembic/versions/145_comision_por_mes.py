@@ -48,6 +48,14 @@ def upgrade() -> None:
 
     op.add_column(TABLA, sa.Column("month", sa.Integer(), nullable=True))
 
+    # ⚠️ La llave vieja se suelta ANTES de expandir. Es (escenario, segmento),
+    # o sea «una sola fila por segmento»: insertar el segundo mes con ella
+    # puesta revienta con `duplicate key`, la migración aborta y el servicio no
+    # arranca. Pasó exactamente así en el deploy del 2026-10-16.
+    nombres = {u["name"] for u in insp.get_unique_constraints(TABLA)}
+    if "uq_rack_comision" in nombres:
+        op.drop_constraint("uq_rack_comision", TABLA, type_="unique")
+
     # ── La expansión: una fila por mes, con el mismo valor ──────────────────
     filas = list(c.execute(sa.text(
         f"SELECT id, scenario_id, hotel_id, segmento_code, comision_pct, "
@@ -66,11 +74,6 @@ def upgrade() -> None:
                  "pc": f.comision_pct, "tp": f.tarifa_propia, "mo": mes})
 
     op.alter_column(TABLA, "month", nullable=False)
-
-    # La llave vieja (escenario + segmento) ya no sirve: ahora hay doce.
-    nombres = {u["name"] for u in insp.get_unique_constraints(TABLA)}
-    if "uq_rack_comision" in nombres:
-        op.drop_constraint("uq_rack_comision", TABLA, type_="unique")
     op.create_unique_constraint("uq_rack_comision_mes", TABLA,
                                 ["scenario_id", "segmento_code", "month"])
 
