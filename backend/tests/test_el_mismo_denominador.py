@@ -40,21 +40,41 @@ def test_el_checkbook_las_calcula_de_unidades_por_dias():
     assert "unidades * CALENDAR_DAYS[month - 1]" in CHECKBOOK
 
 
-def test_un_ACTUAL_conserva_lo_que_midio():
-    """En un presupuesto las disponibles son un supuesto; en un ACTUAL son un
-    hecho.
+def test_un_mes_CERRADO_conserva_lo_que_midio():
+    """En un mes proyectado las disponibles son un supuesto; en uno cerrado son
+    un hecho.
 
     En Ojochal 2025 van de 7,2 a 11,9 unidades por dia porque las villas fueron
     abriendo. Aplanarlas al inventario de hoy contaria como disponible una villa
     que todavia no existia, y la ocupacion de un año cerrado bajaria —de 30,8 %
     a 28,0 %— sin que se hubiera movido una noche vendida.
     """
-    assert "es_actual" in CHECKBOOK
-    assert 'ACTUAL' in CHECKBOOK
-    assert "if es_actual else" in CHECKBOOK
+    assert "medidos_hasta" in CHECKBOOK
+    assert "month <= medidos_hasta" in CHECKBOOK
 
 
-def test_un_ACTUAL_sin_medicion_queda_en_CERO():
+def test_un_FORECAST_mide_hasta_actuals_through():
+    """Un forecast es meses cerrados reales + meses futuros proyectados.
+
+    Tratarlo entero como proyeccion le recalculaba los meses cerrados al
+    inventario: el FORECAST 2026 guardaba 372, 334, 361… y el motor devolvia
+    341, 308, 341… Dos denominadores para el mismo mes, y ninguno avisaba cual
+    miraba cada reporte.
+    """
+    assert 'getattr(scenario, "actuals_through", 0)' in CHECKBOOK
+    assert "12 if es_actual else" in CHECKBOOK
+
+
+def test_un_BUDGET_no_tiene_meses_medidos():
+    """`actuals_through = 0` en un presupuesto: todo sale del inventario.
+
+    Es lo que impide que vuelva la circularidad — un budget con estadisticas
+    viejas las re-afirmaria para siempre, que es como quedaron en 16 unidades.
+    """
+    assert "medidos_hasta = 12 if es_actual else int(" in CHECKBOOK
+
+
+def test_un_mes_cerrado_sin_medicion_queda_en_CERO():
     """Un mes sin estadistica es un mes que no se importo: no estuvo a la venta.
 
     La primera version caia al inventario «para no dividir por cero», y eso le
@@ -63,7 +83,7 @@ def test_un_ACTUAL_sin_medicion_queda_en_CERO():
     de 41,9 % a 25,0 %, sin que se hubiera vendido una noche menos. La division
     ya esta guardada en todos lados, asi que el cero no rompe nada.
     """
-    assert "else 0) if es_actual else" in CHECKBOOK
+    assert "if st else 0)" in CHECKBOOK
     assert "es_actual and medidas" not in CHECKBOOK
 
 

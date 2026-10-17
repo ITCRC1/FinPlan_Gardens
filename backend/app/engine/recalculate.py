@@ -143,17 +143,19 @@ async def revenue_results_from_checkbook(
     tener el MISMO denominador: si difieren, cambiar de modo cambia la ocupación
     sin que se haya movido una noche.
 
-    ## ⚠️ …salvo en un ACTUAL, donde son una MEDICIÓN
+    ## ⚠️ …salvo en los meses CERRADOS, donde son una MEDICIÓN
 
-    En un presupuesto las disponibles son un supuesto y salen del inventario. En
-    un **ACTUAL** son un hecho: cuántas unidades estuvieron realmente a la venta
-    ese mes. En Ojochal 2025 van de **7,2 a 11,9 por día** porque las villas
+    En un mes proyectado las disponibles son un supuesto y salen del inventario.
+    En un mes **cerrado** son un hecho: cuántas unidades estuvieron realmente a
+    la venta. Un ACTUAL es cerrado entero; un FORECAST lo es hasta
+    `actuals_through`; un presupuesto no tiene meses cerrados. En Ojochal 2025 van de **7,2 a 11,9 por día** porque las villas
     fueron abriendo, y en 2026 llegan a 12. Aplanarlas al inventario de hoy
     contaría como disponible una villa que todavía no existía, y la ocupación de
     un año cerrado bajaría —2025 pasaba de 30,8 % a 28,0 %— sin que se hubiera
     movido una noche vendida.
 
-    Por eso el ACTUAL conserva lo medido, **y el mes sin medir queda en cero**:
+    Por eso el mes cerrado conserva lo medido, **y el que no midió queda en
+    cero**:
     un mes sin estadística es un mes que no se importó. Contarlo como
     disponible infla el denominador del año — pasó con el ACTUAL 2026, que sólo
     tiene enero-julio: el año se iba de 2.479 a 4.162 noches y la ocupación de
@@ -173,8 +175,19 @@ async def revenue_results_from_checkbook(
     # Mismo origen y mismo orden que en `load_revenue_results`: si acá se
     # resolvieran distinto, los dos modos darían ocupaciones distintas.
     unidades = await _unidades_del_escenario(session, scenario)
-    #: En un ACTUAL las disponibles son una MEDICIÓN, no un supuesto.
+    #: Hasta qué mes las disponibles son una MEDICIÓN y no un supuesto.
+    #:
+    #: Un ACTUAL es medición entera. Un FORECAST lo es hasta donde llegan sus
+    #: actuales —`actuals_through`, que el sistema ya lleva— y proyección desde
+    #: ahí. Un BUDGET no mide nada: `actuals_through = 0`.
+    #:
+    #: ⚠️ Sin esto, el FORECAST 2026 guardaba los meses cerrados con la
+    #: disponibilidad REAL (372, 334, 361…) y el motor se los recalculaba a 341,
+    #: 308, 341… El escenario tenía dos denominadores para el mismo mes y
+    #: ninguno avisaba cuál miraba cada reporte.
     es_actual = (getattr(scenario, "type", "") or "").upper() == "ACTUAL"
+    medidos_hasta = 12 if es_actual else int(
+        getattr(scenario, "actuals_through", 0) or 0)
 
     results: dict[int, RevenueResult] = {}
     for month in range(1, 13):
@@ -187,20 +200,22 @@ async def revenue_results_from_checkbook(
         if st is not None:
             r.rooms_occupied = st.rooms_occupied or ZERO
             r.guests = st.guests or ZERO
-        # ⚠️ En un ACTUAL manda lo medido, INCLUSO cuando no hay nada medido.
-        # Un mes sin estadística es un mes que no se importó: no estuvo a la
-        # venta, y contarlo como disponible infla el denominador del año.
+        # ⚠️ En un mes CERRADO manda lo medido, incluso cuando no hay nada
+        # medido. Un mes cerrado sin estadística es un mes que no se importó:
+        # no estuvo a la venta, y contarlo como disponible infla el denominador
+        # del año.
         #
-        # La primera versión caía al inventario «para no dividir por cero», y
+        # Una versión anterior caía al inventario «para no dividir por cero», y
         # eso le metió cinco meses de más al ACTUAL 2026 —que sólo tiene
         # enero-julio cargados—: el año pasó de 2.479 noches disponibles a
         # 4.162 y la ocupación de 41,9 % a 25,0 %, sin que se hubiera movido una
         # noche vendida. La división ya está guardada en todos lados
         # (`calcular_mes`, las propiedades de `RevenueResult`), así que el cero
         # no rompe nada — y es la respuesta honesta.
-        r.rooms_available = (int(getattr(st, "rooms_available", 0) or 0) if st
-                             else 0) if es_actual else (
-            unidades * CALENDAR_DAYS[month - 1])
+        r.rooms_available = (
+            (int(getattr(st, "rooms_available", 0) or 0) if st else 0)
+            if month <= medidos_hasta
+            else unidades * CALENDAR_DAYS[month - 1])
         results[month] = r
     return results
 
