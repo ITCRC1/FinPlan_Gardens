@@ -78,6 +78,24 @@ def _d(v) -> str:
     return str(Decimal(str(v or 0)))
 
 
+class _FilaEnMemoria:
+    """Una fila de `canal_rooms_entries` que nunca existió en la base.
+
+    `calcular_mes` y `derivar_mes` reciben objetos con estos cinco atributos.
+    Darles un objeto suelto en vez de una fila real es lo que permite calcular
+    sobre lo tecleado sin escribir una línea.
+    """
+    __slots__ = ("segmento_code", "month", "noches", "tarifa", "ingreso")
+
+    def __init__(self, segmento_code, month, noches, tarifa,
+                 ingreso=Decimal("0")):
+        self.segmento_code = segmento_code
+        self.month = month
+        self.noches = noches
+        self.tarifa = tarifa
+        self.ingreso = ingreso
+
+
 async def _escenario(db: AsyncSession, scenario_id: str) -> Scenario:
     esc = await db.get(Scenario, scenario_id)
     if not esc:
@@ -212,7 +230,28 @@ def _armar(esc, segs, villas, temps, coms, filas, unidades_hotel) -> dict:
                                 tarifas_propias={f.segmento_code: f.tarifa
                                                  for f in delmes})["segmentos"]
                     if hay_tarifario and delmes else {})
-        calc = calcular_mes(delmes, genera, disp)
+        # ⚠️ Se calcula sobre lo DERIVADO, no sobre el `ingreso` que trae la
+        # fila. Dos razones, y la segunda es la que hizo falta:
+        #
+        #   · lo guardado puede ser de antes del último cambio de RAC o de
+        #     comisión, y entonces el cuadro mostraría el ingreso viejo con las
+        #     noches nuevas — cuadrando consigo mismo;
+        #   · una fila que todavía no existe en la base (la previsualización)
+        #     no tiene ingreso que leer, y el cuadro entero salía en CERO con
+        #     las noches moviéndose. Medido el 2026-10-16: al subir Agencias de
+        #     25 a 60 noches en enero, las noches pasaban de 2.263 a 2.298 y el
+        #     ingreso del año se iba a $0,00.
+        #
+        # Las filas de la base NO se tocan: se calcula sobre copias. Mutarlas
+        # acá las mandaría a la base en el próximo `commit` de otra ruta.
+        base = delmes
+        if derivado:
+            base = [_FilaEnMemoria(
+                f.segmento_code, m, f.noches,
+                derivado.get(f.segmento_code, {}).get("tarifa", Decimal("0")),
+                derivado.get(f.segmento_code, {}).get("ingreso", Decimal("0")))
+                for f in delmes]
+        calc = calcular_mes(base, genera, disp)
         # El lado RACK del mes. Owner, 2026-10-16: *«no veo en el app el cálculo
         # de rooms revenue a tarifa rack, sólo veo net»*. El neto es lo que
         # entra al P&L; el rack es contra lo que se mide el descuento — sin él,
@@ -518,23 +557,6 @@ class PreviewBody(BaseModel):
     """Lo que se está tecleando. Nada de esto se guarda."""
     noches: list[NocheBody] = []
     comisiones: list[ComisionBody] = []
-
-
-class _FilaEnMemoria:
-    """Una fila de `canal_rooms_entries` que nunca existió en la base.
-
-    `calcular_mes` y `derivar_mes` reciben objetos con estos cinco atributos.
-    Darles un objeto suelto en vez de una fila real es lo que permite calcular
-    sobre lo tecleado sin escribir una línea.
-    """
-    __slots__ = ("segmento_code", "month", "noches", "tarifa", "ingreso")
-
-    def __init__(self, segmento_code, month, noches, tarifa):
-        self.segmento_code = segmento_code
-        self.month = month
-        self.noches = noches
-        self.tarifa = tarifa
-        self.ingreso = Decimal("0")
 
 
 @router.post("/rack-rooms/{scenario_id}/preview/")

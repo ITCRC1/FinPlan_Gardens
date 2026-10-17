@@ -261,3 +261,29 @@ def test_lo_no_tecleado_entra_como_esta_guardado():
 def test_la_previsualizacion_respeta_la_tarifa_propia():
     """Igual que al guardar: la tarifa sólo se toma en los segmentos sin RAC."""
     assert "e.segmento_code in propias" in inspect.getsource(api.preview)
+
+def test_el_cuadro_se_calcula_sobre_lo_DERIVADO():
+    """El defecto que esto persigue: el cuadro en CERO con las noches moviéndose.
+
+    `calcular_mes` leía el `ingreso` guardado en la fila. Una fila de
+    previsualización todavía no existe en la base, así que no tiene ingreso que
+    leer — y el cuadro entero salía en $0,00 mientras las noches subían. Medido
+    el 2026-10-16: subir Agencias de 25 a 60 noches en enero movía las noches
+    del año de 2.263 a 2.298 y el ingreso a cero.
+
+    También arregla el caso de la base: un `ingreso` guardado de antes del
+    último cambio de RAC o de comisión mostraría el ingreso viejo con las
+    noches nuevas, cuadrando consigo mismo.
+    """
+    fuente = inspect.getsource(api._armar)
+    assert "if derivado:" in fuente
+    assert "calcular_mes(base," in fuente
+
+
+def test_el_armado_no_muta_las_filas_de_la_base():
+    """Se calcula sobre COPIAS. Mutar la fila de la sesión la mandaría a la
+    base en el `commit` de cualquier otra ruta — un `GET` que escribe."""
+    fuente = inspect.getsource(api._armar)
+    assert "_FilaEnMemoria(" in fuente
+    for muta in ("f.ingreso =", "f.tarifa =", "fila.ingreso ="):
+        assert muta not in fuente, muta
