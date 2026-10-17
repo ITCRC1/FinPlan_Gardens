@@ -768,14 +768,37 @@ async def get_revenue_by_room_type(scenario_id: str, db: AsyncSession = Depends(
             r["room_type_code"] = codes.get(r["room_type_id"], "")
         months.append({"month": m, "rows": rows})
 
-    return {
+    # ⚠️ Este cuadro sale SIEMPRE del modelo por tarifa (rack × ocupación por
+    # tipo). Si el escenario saca Rooms del modelo por SEGMENTO, el total de acá
+    # NO es el del P&L — y los dos viajan en la misma respuesta del consolidado.
+    #
+    # Medido el 2026-10-16 en `BUDGET Working 2027`, recién conectado:
+    #     monthly       $402.091,65   2.263 noches   ← el del P&L
+    #     by_room_type  $273.207,99   2.663 noches   ← éste
+    #
+    # No se borra ni se reparte: el modelo por segmento no tiene dimensión de
+    # tipo de habitación, así que inventar un reparto sería dar por medido algo
+    # que nadie midió. Lo que se hace es **declararlo**, para que un consumidor
+    # no pueda sumar estas filas creyendo que son el ingreso del hotel.
+    fuente_rooms = getattr(scenario, "rooms_source", "tarifas")
+    es_la_fuente = fuente_rooms != "canales"
+    salida = {
         "scenario_id": scenario_id,
         "year": scenario.year,
         "room_types": [{"id": rt.id, "code": getattr(rt, "code", ""), "name": rt.name, "units": rt.units}
                        for rt in data["room_types"]],
         "months": months,
         "annual": _aggregate_room_type(months, room_type_units, names, codes),
+        "rooms_source": fuente_rooms,
+        "es_la_fuente_de_rooms": es_la_fuente,
     }
+    if not es_la_fuente:
+        salida["nota"] = (
+            "Este escenario saca Rooms del modelo por segmento de venta, que no "
+            "tiene apertura por tipo de habitación. Las filas de acá son el "
+            "modelo por tarifa y NO suman el ingreso del P&L: para eso va "
+            "`monthly.rooms`.")
+    return salida
 
 
 @router.post("/scenarios/{scenario_id}/import-room-stats/", dependencies=[Depends(registro_de_subida)])
