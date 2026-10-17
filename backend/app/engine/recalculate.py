@@ -1798,11 +1798,15 @@ async def sincronizar_ingreso_al_checkbook(
 
     ## ⚠️ La guarda que no se puede quitar
 
-    **En modo `checkbook` esto NO escribe nada.** Ahí las filas son montos
+    **En modo `checkbook` esto casi no escribe nada.** Ahí las filas son montos
     TIPEADOS por el usuario y son la fuente del P&L: sobrescribirlas con el
     ingreso derivado le borraría el presupuesto a alguien, y encima el P&L
     seguiría cuadrando —contra el número equivocado— así que no habría forma de
     notarlo. La condición es el `revenue_source`, no el tipo ni el año.
+
+    ⚠️ **La única excepción es ROOMS con el modelo por segmento conectado**
+    (`rooms_source = 'canales'`). Esa línea deja de ser tipeada en cuanto se
+    conecta: la calcula el tarifario. Ver el comentario en el cuerpo.
 
     Los meses cerrados tampoco se tocan, por la misma razón que el resto del
     recálculo los respeta.
@@ -1812,8 +1816,25 @@ async def sincronizar_ingreso_al_checkbook(
     from app.models.revenue_entry import REVENUE_LINES, RevenueEntry
 
     # ⚠️ La guarda. Ver el docstring: en `checkbook` el usuario es la fuente.
+    #
+    # …con UNA excepción, y es exactamente una línea: **ROOMS cuando el
+    # escenario saca Rooms del modelo por segmento**. Ahí esa fila dejó de ser
+    # un monto tipeado — la calcula el tarifario RAC— y dejarla congelada es
+    # justo el defecto que esta función existe para impedir.
+    #
+    # Medido el 2026-10-16 en `BUDGET Working 2027`, recién conectado: el P&L y
+    # el consolidado decían **$402.091,65** y el checkbook seguía mostrando
+    # **$273.207,98**, el monto tipeado antes de conectar. Ninguno de los dos
+    # fallaba y cada uno cuadraba consigo mismo; el owner lo vio en la pantalla
+    # y creyó que no se había conectado.
+    #
+    # El resto de las líneas —Spa, Tours, las que el usuario sí digita— no se
+    # tocan: la excepción es por LÍNEA, no por escenario.
+    solo_rooms = False
     if getattr(scenario, "revenue_source", "drivers") == "checkbook":
-        return 0
+        if getattr(scenario, "rooms_source", "tarifas") != "canales":
+            return 0
+        solo_rooms = True
 
     derivado: dict[str, list[Decimal]] = {}
     for mes, resultado in (revenue_results or {}).items():
@@ -1825,6 +1846,8 @@ async def sincronizar_ingreso_al_checkbook(
                 continue
             derivado.setdefault(linea, [Decimal("0")] * 12)
             derivado[linea][int(mes) - 1] = Decimal(str(monto or 0))
+    if solo_rooms:
+        derivado = {k: v for k, v in derivado.items() if k == "ROOMS"}
     if not derivado:
         return 0
 
