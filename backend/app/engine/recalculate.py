@@ -220,7 +220,8 @@ async def revenue_results_from_checkbook(
     return results
 
 
-async def load_revenue_results(session, scenario: Scenario) -> dict[int, RevenueResult]:
+async def load_revenue_results(session, scenario: Scenario,
+                               persistir: bool = False) -> dict[int, RevenueResult]:
     """Compute RevenueResult for all 12 months (mirrors revenue_api)."""
     if getattr(scenario, "revenue_source", "drivers") == "checkbook":
         # ⚠️ El modelo por canal se aplica TAMBIÉN acá.
@@ -238,7 +239,8 @@ async def load_revenue_results(session, scenario: Scenario) -> dict[int, Revenue
         # Sin `rate_cards` —el modo checkbook no las usa— el ratio de pax sale
         # de los pax y noches que ya traía el mes.
         resultados = await revenue_results_from_checkbook(session, scenario)
-        await aplicar_canales_rooms(session, scenario, resultados, [])
+        await aplicar_canales_rooms(session, scenario, resultados, [],
+                                    persistir)
         return resultados
     sid = scenario.id
     channels = (await session.execute(
@@ -295,11 +297,30 @@ async def load_revenue_results(session, scenario: Scenario) -> dict[int, Revenue
     # ⚠️ Rooms PRIMERO. A&B y Spa se calculan sobre los pax, y los pax salen
     # de las noches — que en el modelo por canal las pone este paso. Al revés,
     # quedarían sobre los pax del modelo viejo.
-    await aplicar_canales_rooms(session, scenario, results, rate_cards)
+    await aplicar_canales_rooms(session, scenario, results, rate_cards,
+                                persistir)
     return results
 
 
-async def aplicar_canales_rooms(session, scenario, results, rate_cards) -> bool:
+class _FilaDerivada:
+    """Una fila de `canal_rooms_entries` con la tarifa ya derivada, EN MEMORIA.
+
+    `calcular_mes` necesita objetos con estos cuatro atributos. Dárselos sueltos
+    es lo que permite derivar sin tocar las filas de la sesión — ver
+    `aplicar_canales_rooms`.
+    """
+    __slots__ = ("segmento_code", "month", "noches", "tarifa", "ingreso")
+
+    def __init__(self, f, tarifa, ingreso):
+        self.segmento_code = f.segmento_code
+        self.month = f.month
+        self.noches = f.noches
+        self.tarifa = tarifa
+        self.ingreso = ingreso
+
+
+async def aplicar_canales_rooms(session, scenario, results, rate_cards,
+                                persistir: bool = False) -> bool:
     """ROOMS desde los segmentos de venta, cuando el escenario lo pide.
 
     Owner, 2026-10-15: *«no tenemos historial por tipo de habitación como sí
@@ -379,10 +400,27 @@ async def aplicar_canales_rooms(session, scenario, results, rate_cards) -> bool:
                 {f.segmento_code: f.noches for f in delmes},
                 scenario.year, mes,
                 tarifas_propias={f.segmento_code: f.tarifa for f in delmes})
+            # ⚠️ Por omisión se calcula sobre COPIAS. Esto corre dentro de
+            # `load_revenue_results`, que es el camino de LECTURA de
+            # `get_monthly_revenue` — la puerta del consolidado. Mutar acá la
+            # fila de la sesión dejaba 96 filas sucias en un GET: medido el
+            # 2026-10-16. Hoy escribe los mismos valores que ya estaban, así
+            # que no se ve; el día que difieran, un GET escribe en la base.
+            #
+            # `persistir=True` sólo lo manda el recálculo, que sí quiere dejar
+            # la tabla estándar al día.
+            copias = []
             for f in delmes:
                 s = d["segmentos"].get(f.segmento_code)
-                if s:
+                if s is None:
+                    copias.append(f)
+                    continue
+                if persistir:
                     f.tarifa, f.ingreso = s["tarifa"], s["ingreso"]
+                    copias.append(f)
+                else:
+                    copias.append(_FilaDerivada(f, s["tarifa"], s["ingreso"]))
+            delmes = copias
 
         calc = calcular_mes(delmes, genera, r.rooms_available)
         # pax por noche: lo que declaran las tarifas del mes; si el mes no tiene
@@ -2080,7 +2118,10 @@ async def recalculate_scenario(session, scenario_id: str) -> dict:
     alloc_entries = await _recalc_allocations(session, scenario, avisos, cerrados)
     await session.flush()
 
-    revenue_results = await load_revenue_results(session, scenario)
+    # ⚠️ `persistir=True`: es el ÚNICO lugar que deja la tarifa y el ingreso
+    # derivados escritos en `canal_rooms_entries`. Los demás caminos leen.
+    revenue_results = await load_revenue_results(session, scenario,
+                                                 persistir=True)
     # El ingreso derivado baja al sub-mayor en el MISMO recálculo que lo calcula.
     # Ver `sincronizar_ingreso_al_checkbook`: sin esto el checkbook queda siendo
     # una foto de la última vez que alguien apretó un botón a mano.
