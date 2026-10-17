@@ -170,14 +170,26 @@ async def _rederivar(db: AsyncSession, esc: Scenario, user=None) -> int:
 async def _ver(db: AsyncSession, scenario_id: str) -> dict:
     esc = await _escenario(db, scenario_id)
     segs = await _segmentos(db, esc.hotel_id)
-    genera = {s.code: bool(s.genera_ingreso) for s in segs}
     villas, temps, coms = await _cargar(db, esc)
-    comisiones = {c.segmento_code: (c.comision_pct, bool(c.tarifa_propia))
-                  for c in coms}
     unidades_hotel = await _unidades_del_hotel(db, esc)
-
     filas = (await db.execute(select(CanalRoomsEntry).where(
         CanalRoomsEntry.scenario_id == scenario_id))).scalars().all()
+    return _armar(esc, segs, villas, temps, coms, filas, unidades_hotel)
+
+
+def _armar(esc, segs, villas, temps, coms, filas, unidades_hotel) -> dict:
+    """El cuadro entero a partir de lo que ya se cargó. **No toca la base.**
+
+    ⚠️ Existe separado de `_ver` para que la PREVISUALIZACIÓN use exactamente
+    este código. La pantalla deriva mientras se teclea, y si derivara por su
+    cuenta en el navegador habría dos implementaciones de la misma fórmula:
+    una se corrige y la otra no, y la que se ve no es la que se guarda. Este
+    repo ya pagó por un segundo motor de ingresos — ver `get_monthly_revenue`.
+    """
+    scenario_id = esc.id
+    genera = {s.code: bool(s.genera_ingreso) for s in segs}
+    comisiones = {c.segmento_code: (c.comision_pct, bool(c.tarifa_propia))
+                  for c in coms}
     por_mes: dict[int, list] = {m: [] for m in MESES}
     for f in filas:
         if 1 <= int(f.month) <= 12:
@@ -500,6 +512,106 @@ async def guardar_noches(scenario_id: str, body: list[NocheBody],
     await _rederivar(db, esc, user)
     await db.commit()
     return await _ver(db, scenario_id)
+
+
+class PreviewBody(BaseModel):
+    """Lo que se está tecleando. Nada de esto se guarda."""
+    noches: list[NocheBody] = []
+    comisiones: list[ComisionBody] = []
+
+
+class _FilaEnMemoria:
+    """Una fila de `canal_rooms_entries` que nunca existió en la base.
+
+    `calcular_mes` y `derivar_mes` reciben objetos con estos cinco atributos.
+    Darles un objeto suelto en vez de una fila real es lo que permite calcular
+    sobre lo tecleado sin escribir una línea.
+    """
+    __slots__ = ("segmento_code", "month", "noches", "tarifa", "ingreso")
+
+    def __init__(self, segmento_code, month, noches, tarifa):
+        self.segmento_code = segmento_code
+        self.month = month
+        self.noches = noches
+        self.tarifa = tarifa
+        self.ingreso = Decimal("0")
+
+
+@router.post("/rack-rooms/{scenario_id}/preview/")
+async def preview(scenario_id: str, body: PreviewBody,
+                  db: AsyncSession = Depends(get_db),
+                  _=Depends(get_current_user)):
+    """El cuadro como quedaría con lo que se está tecleando. **No escribe.**
+
+    Owner, 2026-10-16: *«si me cambian una variable, éste debería ser el punto
+    donde se cambie y todo lo demás debe actualizarse o derivarse»*.
+
+    ⚠️ **Por qué una puerta y no una fórmula en el navegador.** Derivar en el
+    front sería más rápido y tendría una fórmula duplicada: el día que cambie
+    el redondeo o la regla de la tarifa propia, una de las dos se actualiza y
+    la otra no — y la que se ve en pantalla deja de ser la que se guarda, sin
+    fallar. Acá corre `_armar`, el mismo código del `GET`.
+
+    ⚠️ **No está exento de la guarda de sólo lectura, y está bien.** Es un
+    `POST`, así que un `viewer` recibe 403 — que es correcto: un lector no
+    teclea en la grilla, así que nunca llega a pedir una previsualización.
+    """
+    esc = await _escenario(db, scenario_id)
+    segs = await _segmentos(db, esc.hotel_id)
+    villas, temps, coms = await _cargar(db, esc)
+    unidades_hotel = await _unidades_del_hotel(db, esc)
+    validos = {s.code for s in segs}
+
+    # Las comisiones que vengan PISAN a las guardadas; las que no vengan se
+    # quedan como están. Así se puede previsualizar un cambio de comisión sin
+    # tener que mandar las siete.
+    if body.comisiones:
+        porcode = {c.segmento_code: c for c in coms}
+        for c in body.comisiones:
+            if c.segmento_code not in validos:
+                raise ErrorApi(422, "canal.segmento_desconocido", code=c.segmento_code)
+            fila = porcode.get(c.segmento_code)
+            if fila is None:
+                fila = RackComision(scenario_id=scenario_id, hotel_id=esc.hotel_id,
+                                    segmento_code=c.segmento_code)
+                coms = [*coms, fila]
+                porcode[c.segmento_code] = fila
+            fila.comision_pct = c.comision_pct
+            fila.tarifa_propia = c.tarifa_propia
+    # ⚠️ `coms` trae objetos de la sesión y arriba se les cambió un campo. Se
+    # EXPULSAN para que ese cambio no viaje a la base en el próximo `commit`
+    # de otra ruta: una previsualización que guarda es peor que ninguna.
+    for c in coms:
+        if c in db:
+            db.expunge(c)
+
+    guardadas = {(f.segmento_code, f.month): f for f in (await db.execute(
+        select(CanalRoomsEntry).where(
+            CanalRoomsEntry.scenario_id == scenario_id))).scalars().all()}
+    propias = {c.segmento_code for c in coms if c.tarifa_propia}
+    filas: list = []
+    tecleadas = set()
+    for e in body.noches:
+        if e.segmento_code not in validos:
+            raise ErrorApi(422, "canal.segmento_desconocido", code=e.segmento_code)
+        if not 1 <= e.month <= 12:
+            raise ErrorApi(400, "mes.fuera_de_rango")
+        previa = guardadas.get((e.segmento_code, e.month))
+        tarifa = (e.tarifa if (e.tarifa is not None
+                               and e.segmento_code in propias)
+                  else (previa.tarifa if previa else Decimal("0")))
+        filas.append(_FilaEnMemoria(e.segmento_code, e.month,
+                                    max(e.noches, Decimal("0")), tarifa))
+        tecleadas.add((e.segmento_code, e.month))
+    # Lo que no se está tecleando entra como está guardado: si no, el cuadro
+    # mostraría en cero los meses que la pantalla no mandó.
+    for (code, mes), f in guardadas.items():
+        if (code, mes) not in tecleadas:
+            filas.append(_FilaEnMemoria(code, mes, f.noches, f.tarifa))
+
+    salida = _armar(esc, segs, villas, temps, coms, filas, unidades_hotel)
+    salida["es_preview"] = True
+    return salida
 
 
 @router.patch("/rack-rooms/{scenario_id}/fuente/")

@@ -4438,6 +4438,18 @@
     "commissionPct": "% comisión / descuento ponderado",
     "rackKept": "% del rack retenido",
     "rackKeptHint": "Neto ÷ rack. Es lo que queda después del canal — el número para negociar.",
-    "blockRackMix": "Mix de ingreso rack por segmento"
+    "blockRackMix": "Mix de ingreso rack por segmento",
+    "inputHint": "Acá se digitan dos cosas: las noches por segmento y mes, y el % de comisión del segmento. Todo lo demás se deriva — igual que en el libro, donde el ingreso y la tarifa promedio son fórmula.",
+    "previewing": "Cambios sin guardar · el cuadro de abajo es una previsualización",
+    "saved2": "Al día con lo guardado",
+    "rowNights": "Noches",
+    "rowOwnRate": "Tarifa propia $",
+    "rowRevenue": "Ingreso $",
+    "rowAvgRate": "Tarifa promedio",
+    "rowOccupancy": "% Ocupación",
+    "blockTotals": "Totales",
+    "commissionHint": "El % que se le va al canal. 0.25 = 25%. Cambiarlo recalcula la tarifa y el ingreso de ese segmento.",
+    "racWeightedHint": "De acá sale la tarifa de cada segmento: RAC × (1 − comisión). Se edita en los sub-tabs de Villas y Temporadas.",
+    "discard": "Descartar cambios"
   }
 }

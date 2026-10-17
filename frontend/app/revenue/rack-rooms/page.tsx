@@ -32,6 +32,7 @@
  * el total **sigue cuadrando consigo mismo** — por eso van arriba y en rojo, no
  * enterrados en una celda que nadie mira.
  */
+import React from "react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -39,6 +40,7 @@ import IrA from "@/components/IrA";
 import {
   getScenarios, getRackRooms, saveRackVillas, saveRackTemporadas,
   saveRackComisiones, saveRackNoches, conectarRackRooms,
+  previewRackRooms,
   type Scenario, type RackRoomsResponse, type RackVillaFila,
   type RackTemporadaFila, type RackComisionFila, type RackMes,
 } from "@/lib/api";
@@ -112,6 +114,8 @@ export default function RackRoomsPage() {
   const [noches, setNoches] = useState<Record<string, Record<number, string>>>({});
   const [tarifasPropias, setTarifasPropias] = useState<Record<string, Record<number, string>>>({});
 
+  /** Hay cambios sin guardar: lo que se ve es la previsualización. */
+  const [dirty, setDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recalc, setRecalc] = useState(false);
@@ -136,6 +140,8 @@ export default function RackRoomsPage() {
     }
     setNoches(nn);
     setTarifasPropias(tp);
+    setDirty(false);
+    setPrevio(null);
   }, []);
 
   useEffect(() => {
@@ -237,6 +243,53 @@ export default function RackRoomsPage() {
     } finally { setRecalc(false); }
   }
 
+  // ── La previsualización ───────────────────────────────────────────────────
+  //
+  // Owner, 2026-10-16: *«si me cambian una variable, éste debería ser el punto
+  // donde se cambie y todo lo demás debe actualizarse o derivarse»*.
+  //
+  // ⚠️ El cuadro derivado NO se calcula acá. Se le pide al servidor, que corre
+  // el mismo `_armar` del `GET`. Derivar en el navegador sería más rápido y
+  // tendría la fórmula escrita dos veces: el día que cambie el redondeo, una
+  // se corrige y la otra no — y lo que se ve deja de ser lo que se guarda.
+  const [previo, setPrevio] = useState<RackRoomsResponse | null>(null);
+  const [calculando, setCalculando] = useState(false);
+
+  /** Lo tecleado, en la forma que espera la puerta. */
+  const loTecleado = useCallback(() => segs.flatMap(s => MONTHS.map((_, mi) => ({
+    segmento_code: s.code, month: mi + 1,
+    noches: n(noches[s.code]?.[mi + 1]),
+    ...(propias.has(s.code)
+      ? { tarifa: n(tarifasPropias[s.code]?.[mi + 1]) } : {}),
+  }))), [segs, noches, tarifasPropias, propias]);
+
+  useEffect(() => {
+    if (!dirty || !scenarioId) return;
+    // Se espera a que deje de teclear: una llamada por tecla haría ochenta
+    // viajes para escribir «150».
+    const id = setTimeout(async () => {
+      setCalculando(true);
+      try { setPrevio(await previewRackRooms(scenarioId, loTecleado(), coms)); }
+      catch { /* el cuadro se queda como estaba; el error sale al guardar */ }
+      finally { setCalculando(false); }
+    }, 600);
+    return () => clearTimeout(id);
+  }, [dirty, scenarioId, loTecleado, coms]);
+
+  /** Lo que se MUESTRA: la previsualización si hay cambios, si no lo guardado. */
+  const vista = (dirty && previo) ? previo : data;
+
+  async function guardarEntrada() {
+    await guardar(async () => {
+      // Las comisiones primero: la tarifa sale de ellas, así que guardar las
+      // noches antes las derivaría con la comisión vieja.
+      await saveRackComisiones(scenarioId, coms);
+      return saveRackNoches(scenarioId, loTecleado());
+    });
+    setDirty(false);
+    setPrevio(null);
+  }
+
   /** Una fila del cuadro: doce meses + total, con su formato.
    *
    * El cuadro tiene veinte filas de la misma forma. Escritas a mano una por
@@ -244,6 +297,7 @@ export default function RackRoomsPage() {
    * corrida no falla, sólo muestra otro número.
    */
   const ms = data?.meses ?? [];
+  const vm = vista?.meses ?? [];
   const Fila = ({ l, v, t: tot, f, bold, sub, hint }: {
     l: string; v: (m: RackMes) => number; t: number;
     f: (x: number) => string; bold?: boolean; sub?: boolean; hint?: string;
@@ -256,6 +310,41 @@ export default function RackRoomsPage() {
         {sub ? "↳ " : ""}{l}
       </td>
       {ms.map(m => (
+        <td key={m.month} style={{ ...TD, fontWeight: bold ? 700 : undefined }}>
+          {f(v(m))}
+        </td>))}
+      <td style={{ ...TD, fontWeight: 700 }}>{f(tot)}</td>
+    </tr>
+  );
+
+  /** Una fila DERIVADA, pegada a la que se edita. Gris y sin caja: lo que no
+   *  se puede escribir no se tiene que ver escribible. */
+  const Der = ({ l, v, f, t: tot }: {
+    l: string; v: (m: RackMes) => number; f: (x: number) => string; t?: number;
+  }) => (
+    <tr>
+      <td style={{ ...TDL, paddingLeft: 20, color: "var(--text-secondary)",
+                   fontSize: 12 }}>{l}</td>
+      <td />
+      {vm.map(m => (
+        <td key={m.month} style={{ ...TD, color: "var(--text-secondary)" }}>
+          {f(v(m))}
+        </td>))}
+      <td style={{ ...TD, color: "var(--text-secondary)" }}>
+        {tot === undefined ? "" : f(tot)}
+      </td>
+    </tr>
+  );
+
+  /** Una fila del bloque de TOTALES. Lleva la columna de comisión vacía. */
+  const Tot = ({ l, v, t: tot, f, bold, hint }: {
+    l: string; v: (m: RackMes) => number; t: number;
+    f: (x: number) => string; bold?: boolean; hint?: string;
+  }) => (
+    <tr>
+      <td style={{ ...TDL, fontWeight: bold ? 700 : undefined }} title={hint}>{l}</td>
+      <td />
+      {vm.map(m => (
         <td key={m.month} style={{ ...TD, fontWeight: bold ? 700 : undefined }}>
           {f(v(m))}
         </td>))}
@@ -552,95 +641,173 @@ export default function RackRoomsPage() {
               </div>
             </div>)}
 
-          {/* ── 3 · Noches por segmento ────────────────────────────────────── */}
+          {/* ── 3 · Resumen Manual: el punto de entrada ─────────────────────
+              Es la pestaña `Resumen Manual` del libro, para Proyección 2027.
+
+              ⚠️ **Acá se digitan DOS cosas y nada más**: las noches por
+              segmento y mes, y el % de comisión del segmento. Es exactamente
+              lo que está escrito a mano en el libro del owner — el resto de
+              esa hoja es fórmula (`D9 = D8*D10`, `D10 = D$66*(1-$B$67)`,
+              `D11 = D8/D$56`).
+
+              Las tres filas derivadas van PEGADAS a la que se edita, y no en
+              otra pantalla: el punto de todo esto es cambiar un número y ver
+              el efecto sin ir a buscarlo. */}
           {paso === "noches" && (
             <div>
-              <p style={{ color: "var(--text-secondary)", fontSize: 12.5, marginBottom: 10 }}>
-                {t("nightsHint")}
+              <p style={{ color: "var(--text-secondary)", fontSize: 12.5, marginBottom: 4 }}>
+                {t("inputHint")}
               </p>
+              <p style={{ color: "var(--text-secondary)", fontSize: 12, marginBottom: 10 }}>
+                {dirty
+                  ? <span style={{ color: "var(--warning, #F59E0B)" }}>● {t("previewing")}</span>
+                  : <span>● {t("saved2")}</span>}
+              </p>
+
               <div className="fin-sticky" style={{ overflowX: "auto" }}>
-                <table className="fin-table" style={{ minWidth: 1180 }}>
+                <table className="fin-table" style={{ minWidth: 1340 }}>
                   <thead><tr>
-                    <th style={{ textAlign: "left", minWidth: 210 }}>{t("segment")}</th>
-                    {MONTHS.map(m => <th key={m} style={{ textAlign: "right", minWidth: 76 }}>{m}</th>)}
-                    <th style={{ textAlign: "right", minWidth: 86 }}>{tc("total")}</th>
+                    <th style={{ textAlign: "left", minWidth: 250 }}>{t("segment")}</th>
+                    <th style={{ textAlign: "right", minWidth: 86 }}>{t("commission")}</th>
+                    {MONTHS.map(m => <th key={m} style={{ textAlign: "right", minWidth: 82 }}>{m}</th>)}
+                    <th style={{ textAlign: "right", minWidth: 96 }}>{tc("total")}</th>
                   </tr></thead>
                   <tbody>
-                    {segs.map((s, fi) => (
-                      <tr key={s.code}>
-                        <td style={TDL}>
-                          {s.nombre}
-                          {!s.genera_ingreso && (
-                            <span title={t("noRevenueHint")}
-                                  style={{ marginLeft: 6, fontSize: 11,
-                                           color: "var(--text-secondary)" }}>
-                              ({t("noRevenue")})
-                            </span>)}
-                        </td>
-                        {MONTHS.map((_, mi) => (
-                          <td key={mi} style={TD}>
-                            <input value={noches[s.code]?.[mi + 1] ?? ""} disabled={locked}
-                                   style={{ ...inpNum, width: 62 }}
-                                   onPaste={e => manejarPegado(e, b => pegarNoches(fi, mi, b))}
-                                   onChange={e => setNoches(v => ({ ...v,
-                                     [s.code]: { ...(v[s.code] ?? {}),
-                                                 [mi + 1]: e.target.value } }))} />
-                          </td>))}
-                        <td style={{ ...TD, fontWeight: 600 }}>
-                          {fmtInt(MONTHS.reduce(
-                            (a, _, mi) => a + n(noches[s.code]?.[mi + 1]), 0))}
-                        </td>
-                      </tr>))}
+                    {segs.map((s, fi) => {
+                      const com = coms.find(c => c.segmento_code === s.code);
+                      const propia = propias.has(s.code);
+                      const ci = coms.findIndex(c => c.segmento_code === s.code);
+                      return (
+                        <React.Fragment key={s.code}>
+                          {/* El nombre del segmento + su comisión, que es el
+                              otro input de esta pestaña (B67:B73 del libro). */}
+                          <tr>
+                            <td style={{ ...TDL, fontWeight: 700, paddingTop: 12 }}>
+                              {s.nombre}
+                              {!s.genera_ingreso && (
+                                <span title={t("noRevenueHint")}
+                                      style={{ marginLeft: 6, fontSize: 11, fontWeight: 400,
+                                               color: "var(--text-secondary)" }}>
+                                  ({t("noRevenue")})
+                                </span>)}
+                            </td>
+                            <td style={{ ...TD, paddingTop: 12 }}>
+                              {s.genera_ingreso && !propia && ci >= 0 && (
+                                <input value={com?.comision_pct ?? "0"} disabled={locked}
+                                       style={{ ...inpNum, width: 62 }}
+                                       title={t("commissionHint")}
+                                       onChange={e => {
+                                         setComs(xs => xs.map((y, j) =>
+                                           j === ci ? { ...y, comision_pct: e.target.value } : y));
+                                         setDirty(true);
+                                       }} />)}
+                              {propia && (
+                                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                                  {t("ownRate")}
+                                </span>)}
+                            </td>
+                            <td colSpan={13} />
+                          </tr>
+
+                          {/* INPUT · las noches */}
+                          <tr>
+                            <td style={{ ...TDL, paddingLeft: 20 }}>{t("rowNights")}</td>
+                            <td />
+                            {MONTHS.map((_, mi) => (
+                              <td key={mi} style={TD}>
+                                <input value={noches[s.code]?.[mi + 1] ?? ""} disabled={locked}
+                                       style={{ ...inpNum, width: 66,
+                                                borderColor: "var(--brand)" }}
+                                       onPaste={e => manejarPegado(e, b => pegarNoches(fi, mi, b))}
+                                       onChange={e => {
+                                         setNoches(v => ({ ...v,
+                                           [s.code]: { ...(v[s.code] ?? {}),
+                                                       [mi + 1]: e.target.value } }));
+                                         setDirty(true);
+                                       }} />
+                              </td>))}
+                            <td style={{ ...TD, fontWeight: 600 }}>
+                              {fmtInt(MONTHS.reduce(
+                                (a, _, mi) => a + n(noches[s.code]?.[mi + 1]), 0))}
+                            </td>
+                          </tr>
+
+                          {/* INPUT sólo para los de tarifa propia: Long term
+                              no tiene RAC, así que su tarifa se digita. */}
+                          {propia && (
+                            <tr>
+                              <td style={{ ...TDL, paddingLeft: 20 }}>{t("rowOwnRate")}</td>
+                              <td />
+                              {MONTHS.map((_, mi) => (
+                                <td key={mi} style={TD}>
+                                  <input value={tarifasPropias[s.code]?.[mi + 1] ?? ""}
+                                         disabled={locked}
+                                         style={{ ...inpNum, width: 66,
+                                                  borderColor: "var(--brand)" }}
+                                         onPaste={e => manejarPegado(e, b => pegarTarifas(
+                                           conTarifaPropia.findIndex(x => x.code === s.code), mi, b))}
+                                         onChange={e => {
+                                           setTarifasPropias(v => ({ ...v,
+                                             [s.code]: { ...(v[s.code] ?? {}),
+                                                         [mi + 1]: e.target.value } }));
+                                           setDirty(true);
+                                         }} />
+                                </td>))}
+                              <td />
+                            </tr>)}
+
+                          {/* DERIVADAS · las tres filas de fórmula del libro */}
+                          <Der l={t("rowRevenue")}
+                               v={m => n(m.segmentos[s.code]?.ingreso)} f={fmtUsd}
+                               t={n(vista?.total?.segmentos[s.code]?.ingreso)} />
+                          {s.genera_ingreso && (
+                            <Der l={t("rowAvgRate")}
+                                 v={m => n(m.segmentos[s.code]?.tarifa)} f={fmtUsd} />)}
+                          <Der l={t("rowOccupancy")}
+                               v={m => n(m.segmentos[s.code]?.ocupacion)} f={fmtPct} />
+                        </React.Fragment>);
+                    })}
+
+                    {/* ── TOTALES ─────────────────────────────────────────── */}
+                    <tr><td style={BLQ} colSpan={15}>{t("blockTotals")}</td></tr>
+                    <Tot l={t("available")} v={m => n(m.disponibles)}
+                         t={n(vista?.total.disponibles)} f={fmtInt} />
+                    <Tot l={t("nightsRevenue")} v={m => n(m.noches_ingreso)}
+                         t={n(vista?.total.noches_ingreso)} f={fmtInt} />
+                    <Tot l={t("nightsTotal")} v={m => n(m.noches_totales)}
+                         t={n(vista?.total.noches_totales)} f={fmtInt} />
+                    <Tot l={t("occupancy")} v={m => n(m.ocupacion)}
+                         t={n(vista?.total.ocupacion)} f={fmtPct} />
+                    <Tot l={t("occupancyTotal")} v={m => n(m.ocupacion_total)}
+                         t={n(vista?.total.ocupacion_total)} f={fmtPct} />
+                    <Tot l={t("totalNetRevenue")} bold v={m => n(m.ingreso)}
+                         t={n(vista?.total.ingreso)} f={fmtUsd} />
+                    <Tot l={t("adr")} v={m => n(m.adr)} t={n(vista?.total.adr)} f={fmtUsd} />
+                    <Tot l={t("revpar")} v={m => n(m.revpar)}
+                         t={n(vista?.total.revpar)} f={fmtUsd} />
+
+                    {/* ── El RAC del que sale todo ────────────────────────── */}
+                    <tr><td style={BLQ} colSpan={15}>{t("blockRackRate")}</td></tr>
+                    <Tot l={t("racWeighted")} v={m => n(m.rac_ponderado)}
+                         t={n(vista?.total?.rack.adr_rack_sin_propias)} f={fmtUsd}
+                         hint={t("racWeightedHint")} />
                   </tbody>
                 </table>
               </div>
 
-              {/* La tarifa propia: sólo para los segmentos sin RAC */}
-              {propias.size > 0 && (
-                <>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginTop: 18,
-                               color: "var(--text-primary)" }}>
-                    {t("ownRateTitle")}
-                  </h3>
-                  <p style={{ color: "var(--text-secondary)", fontSize: 12.5, marginBottom: 8 }}>
-                    {t("ownRateHint")}
-                  </p>
-                  <div className="fin-sticky" style={{ overflowX: "auto" }}>
-                    <table className="fin-table" style={{ minWidth: 1180 }}>
-                      <thead><tr>
-                        <th style={{ textAlign: "left", minWidth: 210 }}>{t("segment")}</th>
-                        {MONTHS.map(m => <th key={m} style={{ textAlign: "right", minWidth: 76 }}>{m}</th>)}
-                      </tr></thead>
-                      <tbody>
-                        {conTarifaPropia.map((s, fi) => (
-                          <tr key={s.code}>
-                            <td style={TDL}>{s.nombre}</td>
-                            {MONTHS.map((_, mi) => (
-                              <td key={mi} style={TD}>
-                                <input value={tarifasPropias[s.code]?.[mi + 1] ?? ""}
-                                       disabled={locked} style={{ ...inpNum, width: 70 }}
-                                       onPaste={e => manejarPegado(e, b => pegarTarifas(fi, mi, b))}
-                                       onChange={e => setTarifasPropias(v => ({ ...v,
-                                         [s.code]: { ...(v[s.code] ?? {}),
-                                                     [mi + 1]: e.target.value } }))} />
-                              </td>))}
-                          </tr>))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>)}
-
-              <button disabled={locked || saving} style={{ ...btn(!locked && !saving), marginTop: 10 }}
-                      onClick={() => guardar(() => saveRackNoches(scenarioId,
-                        segs.flatMap(s => MONTHS.map((_, mi) => ({
-                          segmento_code: s.code, month: mi + 1,
-                          noches: n(noches[s.code]?.[mi + 1]),
-                          ...(propias.has(s.code)
-                            ? { tarifa: n(tarifasPropias[s.code]?.[mi + 1]) }
-                            : {}),
-                        })))))}>
-                {saving ? tc("saving") : tc("save")}
-              </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+                <button disabled={locked || saving || !dirty}
+                        style={btn(!locked && !saving && dirty)}
+                        onClick={guardarEntrada}>
+                  {saving ? tc("saving") : tc("save")}
+                </button>
+                {dirty && (
+                  <button disabled={saving} style={{ ...btn(!saving),
+                            background: "var(--bg-surface)", color: "var(--text-secondary)" }}
+                          onClick={() => { if (data) aplicar(data); }}>
+                    {t("discard")}
+                  </button>)}
+              </div>
             </div>)}
 
           {/* ── 4 · Origen de la tarifa ────────────────────────────────────── */}

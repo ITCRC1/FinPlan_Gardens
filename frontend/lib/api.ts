@@ -5413,3 +5413,19 @@ export async function conectarRackRooms(
   if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
   return res.json();
 }
+
+/** El cuadro como quedaría con lo tecleado. **No guarda nada.**
+ *
+ * Corre el MISMO armado que `getRackRooms` en el servidor: derivar la fórmula
+ * acá en el navegador tendría dos implementaciones de lo mismo, y el día que
+ * cambie el redondeo una se corrige y la otra no — y lo que se ve deja de ser
+ * lo que se guarda, sin fallar.
+ */
+export async function previewRackRooms(
+  scenarioId: string,
+  noches: { segmento_code: string; month: number; noches: number; tarifa?: number }[],
+  comisiones?: RackComisionFila[],
+): Promise<RackRoomsResponse & { es_preview: boolean }> {
+  return api.post(`/rack-rooms/${encodeURIComponent(scenarioId)}/preview/`,
+                  { noches, comisiones: comisiones ?? [] });
+}

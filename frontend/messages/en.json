@@ -4438,6 +4438,18 @@
     "commissionPct": "% weighted commission / discount",
     "rackKept": "% of rack kept",
     "rackKeptHint": "Net ÷ rack. What is left after the channel — the figure you negotiate with.",
-    "blockRackMix": "Rack revenue mix by segment"
+    "blockRackMix": "Rack revenue mix by segment",
+    "inputHint": "Two things are typed here: nights per segment and month, and the segment's commission %. Everything else derives — just like in the workbook, where revenue and average rate are formulas.",
+    "previewing": "Unsaved changes · the table below is a preview",
+    "saved2": "Up to date with what is saved",
+    "rowNights": "Nights",
+    "rowOwnRate": "Own rate $",
+    "rowRevenue": "Revenue $",
+    "rowAvgRate": "Average rate",
+    "rowOccupancy": "% Occupancy",
+    "blockTotals": "Totals",
+    "commissionHint": "The share that goes to the channel. 0.25 = 25%. Changing it recomputes that segment's rate and revenue.",
+    "racWeightedHint": "Each segment's rate comes from here: RAC x (1 - commission). Edit it in the Villas and Seasons sub-tabs.",
+    "discard": "Discard changes"
   }
 }

@@ -113,9 +113,10 @@ def test_todo_put_vuelve_a_derivar():
 def test_el_get_no_escribe():
     """`_ver` deriva para MOSTRAR. Si escribiera, abrir la pantalla de un
     escenario enllavado lo modificaría."""
-    fuente = inspect.getsource(api._ver)
-    for escribe in ("db.add(", "db.delete(", "db.commit(", "_rederivar("):
-        assert escribe not in fuente, escribe
+    for fn in (api._ver, api._armar):
+        fuente = inspect.getsource(fn)
+        for escribe in ("db.add(", "db.delete(", "db.commit(", "_rederivar("):
+            assert escribe not in fuente, f"{fn.__name__}: {escribe}"
 
 
 def test_rederivar_no_toca_nada_sin_tarifario():
@@ -161,7 +162,7 @@ def test_las_fuentes_validas_son_las_del_modelo():
 def test_el_get_expone_los_tres_controles():
     """El libro del owner tiene controles que tienen que dar cero. Si no se
     muestran, el hueco aparece tres meses después en una varianza."""
-    fuente = inspect.getsource(api._ver)
+    fuente = inspect.getsource(api._armar)
     for control in ('"unidades"', '"meses_sin_temporada"',
                     '"segmentos_sin_comision"'):
         assert control in fuente, control
@@ -174,6 +175,7 @@ def test_las_disponibles_no_salen_del_tarifario():
     mes, y ninguna de las dos avisa cuál es.
     """
     assert "_unidades_del_hotel" in inspect.getsource(api._ver)
+    assert "unidades_hotel" in inspect.getsource(api._armar)
     fuente = inspect.getsource(api._unidades_del_hotel)
     assert "RoomTypeConfig" in fuente
     assert "RackVilla" not in fuente
@@ -181,7 +183,7 @@ def test_las_disponibles_no_salen_del_tarifario():
 
 def test_el_control_de_unidades_compara_los_dos():
     """No elige una: dice las dos y si coinciden."""
-    fuente = inspect.getsource(api._ver)
+    fuente = inspect.getsource(api._armar)
     assert '"hotel": unidades_hotel' in fuente
     assert '"tarifario": unidades_tarifario' in fuente
 
@@ -217,3 +219,45 @@ def test_la_pantalla_no_siembra_segmentos():
     fuente = inspect.getsource(api._segmentos)
     assert "db.add(" not in fuente
     assert "commit" not in fuente
+
+# ── La previsualización ──────────────────────────────────────────────────────
+def test_la_previsualizacion_NO_escribe():
+    """Una previsualización que guarda es peor que ninguna: el usuario estaría
+    editando el presupuesto mientras explora un «¿y si…?»."""
+    fuente = inspect.getsource(api.preview)
+    for escribe in ("db.add(", "db.delete(", "db.commit(", "db.flush(",
+                    "_rederivar("):
+        assert escribe not in fuente, escribe
+
+
+def test_la_previsualizacion_expulsa_lo_que_toco():
+    """Pisa la comisión sobre objetos de la sesión para calcular. Si no se
+    expulsan, ese cambio viaja a la base en el `commit` de cualquier otra ruta
+    — y nadie lo relacionaría con haber mirado una previsualización."""
+    assert "db.expunge(" in inspect.getsource(api.preview)
+
+
+def test_la_previsualizacion_usa_el_MISMO_armado_que_el_GET():
+    """Si derivara por su cuenta habría dos implementaciones de la fórmula: una
+    se corrige y la otra no, y lo que se ve deja de ser lo que se guarda."""
+    assert "_armar(" in inspect.getsource(api.preview)
+    assert "_armar(" in inspect.getsource(api._ver)
+
+
+def test_el_armado_no_toca_la_base():
+    """`_armar` recibe todo cargado. Es lo que permite calcular sobre filas que
+    nunca existieron."""
+    fuente = inspect.getsource(api._armar)
+    for toca in ("await db", "session.execute", "db.add(", "db.commit("):
+        assert toca not in fuente, toca
+
+
+def test_lo_no_tecleado_entra_como_esta_guardado():
+    """Mandar sólo la celda que cambió no puede poner en cero los otros once
+    meses."""
+    assert "if (code, mes) not in tecleadas" in inspect.getsource(api.preview)
+
+
+def test_la_previsualizacion_respeta_la_tarifa_propia():
+    """Igual que al guardar: la tarifa sólo se toma en los segmentos sin RAC."""
+    assert "e.segmento_code in propias" in inspect.getsource(api.preview)
