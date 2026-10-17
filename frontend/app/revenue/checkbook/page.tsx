@@ -18,7 +18,7 @@ import { HOTEL_ID } from "@/lib/hotel";
 import { bajarCuadros, type Cuadro, type ColumnaCuadro, type FilaCuadro } from "@/lib/exportCuadro";
 import {
   getScenarios, getRevenueCheckbook, saveRevenueCheckbook, setRevenueSource,
-  getRoomTypes, getOccupancyPct, getRackRates, getChannelsConfig,
+  getRoomTypes, getMonthlyRevenue,
   getDriverRatesSeed,
   type Scenario, type RevenueCheckbookRow, type RevenueSource,
   type RevenueBulkRow, type MonthKey,
@@ -134,36 +134,49 @@ export default function RevenueCheckbookPage() {
   const load = useCallback(async (sid: string) => {
     setLoading(true); setMsg(null);
     try {
-      const [cb, rt, occ, rack, ch] = await Promise.all([
+      const [cb, rt, mensual] = await Promise.all([
         getRevenueCheckbook(sid), getRoomTypes(HOTEL_ID, sid),
-        getOccupancyPct(sid), getRackRates(sid), getChannelsConfig(sid),
+        getMonthlyRevenue(sid),
       ]);
       setRows(cb.lines.map(l => ({ ...l, ...Object.fromEntries(MONTH_KEYS.map(mk => [mk, money2(l[mk])])) })));
       setSource(cb.source);
 
-      // KPIs de Rooms desde los drivers (mismo cálculo que Total Revenue)
-      const year = occ.year;
-      const closed = new Set(rt.closed_months);
-      const unitsById = Object.fromEntries(rt.room_types.map(r => [r.id, r.units]));
-      const nf = ch.net_factor.map(v => parseFloat(v) || 0);
-      const rackById = Object.fromEntries(rack.rooms.map(r => [r.room_type_id, MONTH_KEYS.map(mk => parseFloat(r[mk]) || 0)]));
+      // ⚠️ Los KPIs de Rooms salen del MOTOR, no de una cuenta hecha acá.
+      //
+      // Esta pantalla los calculaba en el navegador —ocupación × unidades ×
+      // días, y rack × net factor para el ingreso—, o sea el modelo de
+      // TARIFAS, mirara lo que mirara el escenario. Era un tercer motor, y el
+      // texto de arriba decía que venían de las estadísticas.
+      //
+      // Lo que se vio el 2026-10-16, con el modelo por segmento conectado:
+      //
+      //     la pantalla   1.831 noches · 45,6 % · ADR $102,59
+      //     el motor      2.263 noches · 56,4 % · ADR $177,68
+      //
+      // Con el ingreso de Rooms ya corregido en la fila de abajo. O sea: el
+      // mismo cuadro mostraba el ingreso nuevo y la ocupación vieja, sin que
+      // nada fallara. Ahora sale todo de `revenue/monthly/`, que es la misma
+      // puerta que lee el P&L y el consolidado.
+      const porMes = new Map(mensual.map(m => [m.month, m]));
+      const num = (v: string | number | undefined) => {
+        const x = parseFloat(String(v ?? ""));
+        return isNaN(x) ? 0 : x;
+      };
       const available = MONTHS.map((_m, mi) =>
-        rt.room_types.reduce((s, r) => s + (closed.has(mi + 1) ? 0 : r.units * daysInMonth(year, mi + 1)), 0));
+        porMes.get(mi + 1)?.rooms_available ?? 0);
       const occupied = MONTHS.map((_m, mi) =>
-        occ.rooms.reduce((s, r) => {
-          if (closed.has(mi + 1)) return s;
-          const u = unitsById[r.room_type_id] ?? 0;
-          return s + (parseFloat(r[MONTH_KEYS[mi]]) || 0) * u * daysInMonth(year, mi + 1);
-        }, 0));
-      const roomRev = MONTHS.map((_m, mi) =>
-        occ.rooms.reduce((s, r) => {
-          if (closed.has(mi + 1)) return s;
-          const u = unitsById[r.room_type_id] ?? 0;
-          const nights = (parseFloat(r[MONTH_KEYS[mi]]) || 0) * u * daysInMonth(year, mi + 1);
-          const rk = (rackById[r.room_type_id]?.[mi]) || 0;
-          return s + nights * rk * (nf[mi] || 0);
-        }, 0));
-      setStats({ available, occupied, roomRev, netFactor: nf, paxPerNight: parseFloat(rt.pax_per_night) || 1.8 });
+        num(porMes.get(mi + 1)?.rooms_occupied));
+      const roomRev = MONTHS.map((_m, mi) => num(porMes.get(mi + 1)?.rooms));
+      const nf = MONTHS.map((_m, mi) => num(porMes.get(mi + 1)?.net_factor));
+      // Pax por noche: lo que de verdad dio el mes. El valor del tipo de
+      // habitación es el SUPUESTO, y si el modelo por segmento movió las
+      // noches, el supuesto deja de describir al mes.
+      const paxTot = MONTHS.reduce((a, _m, mi) => a + num(porMes.get(mi + 1)?.guests), 0);
+      const occTot = occupied.reduce((a, v) => a + v, 0);
+      setStats({
+        available, occupied, roomRev, netFactor: nf,
+        paxPerNight: occTot ? paxTot / occTot : (parseFloat(rt.pax_per_night) || 1.8),
+      });
       setDirty(false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : tc("error"));
