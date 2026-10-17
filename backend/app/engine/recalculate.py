@@ -153,9 +153,11 @@ async def revenue_results_from_checkbook(
     un año cerrado bajaría —2025 pasaba de 30,8 % a 28,0 %— sin que se hubiera
     movido una noche vendida.
 
-    Por eso el ACTUAL conserva lo medido **cuando lo hay**: si el mes no trae
-    estadística o viene en cero, no hay medición que preservar y se cae al
-    inventario, que es mejor que dividir por cero.
+    Por eso el ACTUAL conserva lo medido, **y el mes sin medir queda en cero**:
+    un mes sin estadística es un mes que no se importó. Contarlo como
+    disponible infla el denominador del año — pasó con el ACTUAL 2026, que sólo
+    tiene enero-julio: el año se iba de 2.479 a 4.162 noches y la ocupación de
+    41,9 % a 25,0 % sin que se hubiera vendido una noche menos.
     """
     sid = scenario.id
     entries = (await session.execute(
@@ -185,8 +187,19 @@ async def revenue_results_from_checkbook(
         if st is not None:
             r.rooms_occupied = st.rooms_occupied or ZERO
             r.guests = st.guests or ZERO
-        medidas = int(getattr(st, "rooms_available", 0) or 0) if st else 0
-        r.rooms_available = medidas if (es_actual and medidas) else (
+        # ⚠️ En un ACTUAL manda lo medido, INCLUSO cuando no hay nada medido.
+        # Un mes sin estadística es un mes que no se importó: no estuvo a la
+        # venta, y contarlo como disponible infla el denominador del año.
+        #
+        # La primera versión caía al inventario «para no dividir por cero», y
+        # eso le metió cinco meses de más al ACTUAL 2026 —que sólo tiene
+        # enero-julio cargados—: el año pasó de 2.479 noches disponibles a
+        # 4.162 y la ocupación de 41,9 % a 25,0 %, sin que se hubiera movido una
+        # noche vendida. La división ya está guardada en todos lados
+        # (`calcular_mes`, las propiedades de `RevenueResult`), así que el cero
+        # no rompe nada — y es la respuesta honesta.
+        r.rooms_available = (int(getattr(st, "rooms_available", 0) or 0) if st
+                             else 0) if es_actual else (
             unidades * CALENDAR_DAYS[month - 1])
         results[month] = r
     return results

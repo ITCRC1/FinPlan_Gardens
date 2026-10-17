@@ -51,13 +51,20 @@ def test_un_ACTUAL_conserva_lo_que_midio():
     """
     assert "es_actual" in CHECKBOOK
     assert 'ACTUAL' in CHECKBOOK
-    assert "medidas if (es_actual and medidas)" in CHECKBOOK
+    assert "if es_actual else" in CHECKBOOK
 
 
-def test_un_ACTUAL_sin_medicion_cae_al_inventario():
-    """Sin estadistica, o con la estadistica en cero, no hay nada que
-    preservar: usar ese cero seria dividir por cero en la ocupacion."""
-    assert "es_actual and medidas" in CHECKBOOK
+def test_un_ACTUAL_sin_medicion_queda_en_CERO():
+    """Un mes sin estadistica es un mes que no se importo: no estuvo a la venta.
+
+    La primera version caia al inventario «para no dividir por cero», y eso le
+    metio cinco meses de mas al ACTUAL 2026 —que solo tiene enero-julio
+    cargados—: el año paso de 2.479 noches disponibles a 4.162 y la ocupacion
+    de 41,9 % a 25,0 %, sin que se hubiera vendido una noche menos. La division
+    ya esta guardada en todos lados, asi que el cero no rompe nada.
+    """
+    assert "else 0) if es_actual else" in CHECKBOOK
+    assert "es_actual and medidas" not in CHECKBOOK
 
 
 def test_las_ocupadas_y_los_pax_SI_salen_de_las_estadisticas():
