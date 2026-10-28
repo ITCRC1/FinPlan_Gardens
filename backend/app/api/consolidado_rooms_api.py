@@ -65,6 +65,12 @@ async def rooms_escenarios(db: AsyncSession = Depends(get_db),
         "tiene_pacing": _tiene_pacing(),
         "escenarios": [{
             "id": e.id, "year": e.year, "type": e.type, "version": e.version, "status": e.status,
+            # De qué modelo sale Rooms en ESE escenario (Hotel Consolidation,
+            # 2026-10-28). Sin esto, saber con qué modelo se armó cada uno
+            # obliga a pedirlos de a uno: con cuatro propiedades y catorce
+            # escenarios cada una son cincuenta y seis llamadas para una
+            # pregunta que cabe en la lista.
+            "rooms_source": getattr(e, "rooms_source", "tarifas"),
             "is_current_forecast": bool(getattr(e, "is_current_forecast", False)),
             "actuals_through": getattr(e, "actuals_through", None),
             "created_at": e.created_at.isoformat() if getattr(e, "created_at", None) else None,

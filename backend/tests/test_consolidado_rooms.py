@@ -49,3 +49,23 @@ def test_rack_rooms_solo_entrega_totales():
     bloque = FUENTE.split('"/consolidado/rooms/rack-rooms/{scenario_id}/"')[1]
     assert "_escenario_propio" in bloque and "rack_rooms_api._ver" in bloque
     assert '"entradas"' not in bloque.split("return {")[1]
+
+def test_la_lista_dice_con_que_modelo_se_armo_cada_escenario():
+    """Hotel Consolidation, 2026-10-28: *«¿cómo sabe qué datos llevar?»*.
+
+    El detalle del P&L ya es independiente del modelo —`REV_ROOMS` es
+    `REV_ROOMS` venga de donde venga—, pero para validar un número hay que
+    saber con qué se armó. Sin este campo, averiguarlo obliga a pedir los
+    escenarios de a uno: con cuatro propiedades y catorce escenarios cada una
+    son cincuenta y seis llamadas para un dato que cabe en la lista.
+    """
+    assert '"rooms_source": getattr(e, "rooms_source", "tarifas")' in FUENTE
+
+
+def test_el_default_del_modelo_es_el_de_siempre():
+    """Una propiedad sin el campo contesta `tarifas`, no `null`.
+
+    Un `null` obliga al consolidador a decidir qué significa, y las dos
+    lecturas posibles —«no sé» y «el de siempre»— llevan a cuadros distintos.
+    """
+    assert '"tarifas")' in FUENTE

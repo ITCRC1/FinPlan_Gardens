@@ -138,5 +138,10 @@ async def consolidado_escenarios(quien: str = Depends(lector_del_consolidado)):
         "hotel_name": HOTEL_NAME,
         "escenarios": [{
             "year": e.year, "tipo": e.type, "version": e.version, "status": e.status,
+            # Hasta qué mes es real, y de qué modelo sale Rooms. Las dos cosas
+            # cambian cómo se lee el detalle, y pedirlas escenario por
+            # escenario son decenas de llamadas para un par de campos.
+            "actuals_through": getattr(e, "actuals_through", None),
+            "rooms_source": getattr(e, "rooms_source", "tarifas"),
         } for e in filas],
     }
