@@ -183,6 +183,39 @@ export default function RackRoomsPage() {
     () => new Set(Object.entries(propiaDe).filter(([, v]) => v).map(([k]) => k)),
     [propiaDe]);
 
+  /** El descuento del mes, si TODOS los segmentos de rack tienen el mismo.
+   *  Si difieren devuelve `null` y la fila lo muestra vacío: inventar un
+   *  promedio ahí haría creer que el mes está parejo cuando no lo está. */
+  const descuentoDelMes = useCallback((mes: number): string | null => {
+    const cods = segs.filter(x => x.genera_ingreso && !propias.has(x.code))
+                     .map(x => x.code);
+    if (!cods.length) return null;
+    const v = coms[cods[0]]?.[mes] ?? "0";
+    return cods.every(c => (coms[c]?.[mes] ?? "0") === v) ? v : null;
+  }, [segs, coms, propias]);
+
+  /** Escribe el mismo descuento en todos los segmentos que venden a rack.
+   *
+   *  Owner, 2026-10-28: *«podemos desconectar los segmentos y poner estos
+   *  descuentos en forma manual y editables»*. «Desconectar» no es apagar el
+   *  modelo: es dejar de diferenciar por canal y usar un solo número por mes.
+   *
+   *  ⚠️ Los de TARIFA PROPIA quedan afuera. Long term no vende contra el
+   *  tarifario, así que un descuento contra rack no significa nada ahí — y si
+   *  se le aplicara, su ingreso bajaría sin que nadie lo hubiera pedido.
+   */
+  const ponerDescuento = useCallback((mes: number, valor: string) => {
+    setComs(v => {
+      const out = { ...v };
+      for (const x of segs) {
+        if (!x.genera_ingreso || propias.has(x.code)) continue;
+        out[x.code] = { ...(out[x.code] ?? {}), [mes]: valor };
+      }
+      return out;
+    });
+    setDirty(true);
+  }, [segs, propias]);
+
   /** Lo que se manda al guardar: una fila por segmento y mes. */
   const comisionesAEnviar = useCallback((): RackComisionFila[] =>
     segs.flatMap(s => MONTHS.map((_, mi) => ({
@@ -986,6 +1019,36 @@ export default function RackRoomsPage() {
                     <th style={{ textAlign: "left", minWidth: 110 }}>{t("ownRate")}</th>
                   </tr></thead>
                   <tbody>
+                    {/* ⚠️ La fila de arriba escribe en TODAS las de abajo.
+                        Es la forma de trabajar cuando el descuento se negocia
+                        por mes y no por canal: un número, doce veces. Las filas
+                        por segmento siguen editables para el caso contrario. */}
+                    <tr style={{ background: "var(--bg-surface)" }}>
+                      <td style={{ ...TDL, fontWeight: 700 }}
+                          title={t("discountRowHint")}>
+                        {t("discountRow")}
+                      </td>
+                      {MONTHS.map((_, mi) => {
+                        const mes = mi + 1;
+                        const v = descuentoDelMes(mes);
+                        return (
+                          <td key={mi} style={TD}>
+                            <input value={v ?? ""} disabled={locked}
+                                   placeholder={v === null ? "—" : ""}
+                                   title={v === null ? t("discountVariesHint") : ""}
+                                   style={{ ...inpNum, width: 60, fontWeight: 700,
+                                            borderColor: v === null
+                                              ? "var(--warning, #F59E0B)"
+                                              : "var(--brand)" }}
+                                   onChange={e => ponerDescuento(mes, e.target.value)} />
+                          </td>);
+                      })}
+                      <td style={TDL}>
+                        <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                          {t("discountExcludesOwn")}
+                        </span>
+                      </td>
+                    </tr>
                     {segs.filter(x => x.genera_ingreso).map(x => {
                       const propia = propias.has(x.code);
                       const ene = n(coms[x.code]?.[1]);
@@ -1030,6 +1093,34 @@ export default function RackRoomsPage() {
                   </tbody>
                 </table>
               </div>
+              {/* El total que sale de esos descuentos, acá mismo: el punto de
+                  tocarlos es llegar a un número, y tenerlo en otra pestaña
+                  obliga a ir y volver por cada ajuste. */}
+              <div style={{ display: "flex", gap: 22, flexWrap: "wrap",
+                            padding: "10px 14px", marginBottom: 14,
+                            borderRadius: 6, background: "var(--bg-surface)",
+                            border: "1px solid var(--border-medium)" }}>
+                <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>
+                  {t("totalRackRevenue")}:{" "}
+                  <b style={{ color: "var(--text-primary)" }}>
+                    {fmtUsd(n(vista?.total?.rack?.ingreso_rack))}
+                  </b>
+                </span>
+                <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>
+                  {t("commissionUsd")}:{" "}
+                  <b style={{ color: "var(--text-primary)" }}>
+                    {fmtUsd(n(vista?.total?.rack?.comision_usd))}
+                  </b>{" "}
+                  ({fmtPct(n(vista?.total?.rack?.comision_pct))})
+                </span>
+                <span style={{ fontSize: 13 }}>
+                  {t("totalNetRevenue")}:{" "}
+                  <b style={{ color: "var(--brand)", fontSize: 14 }}>
+                    {fmtUsd(n(vista?.total?.ingreso))}
+                  </b>
+                </span>
+              </div>
+
               <button disabled={locked || saving} style={{ ...btn(!locked && !saving), marginBottom: 20 }}
                       onClick={() => guardar(() => saveRackComisiones(scenarioId, comisionesAEnviar()))}>
                 {saving ? tc("saving") : tc("save")}

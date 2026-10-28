@@ -4464,6 +4464,10 @@
     "after": "After",
     "rejected": "{n} rows cannot be applied:",
     "commissionMonthlyHint": "Commission is per month. Type January and it copies to the rest of the year; then change by hand only the month that differs. A month you already changed by hand is NOT overwritten when you touch January again — it is marked in amber.",
-    "commissionVariesHint": "This segment has months with a commission different from January's. See them in tab 4 - Rate origin."
+    "commissionVariesHint": "This segment has months with a commission different from January's. See them in tab 4 - Rate origin.",
+    "discountRow": "Discount vs Rack (all)",
+    "discountRowHint": "A single discount per month for every segment that sells at rack rate. Type here and it copies to the rows below. To differentiate by channel, edit the rows directly.",
+    "discountVariesHint": "This month has different discounts per segment. Type a value here to level them all.",
+    "discountExcludesOwn": "does not apply to own rate"
   }
 }

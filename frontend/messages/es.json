@@ -4464,6 +4464,10 @@
     "after": "Ahora",
     "rejected": "{n} filas no se pueden aplicar:",
     "commissionMonthlyHint": "La comisión es por mes. Escriba enero y se copia al resto del año; después cambie a mano sólo el mes que se aparta. Un mes que ya cambió a mano NO se pisa al volver a tocar enero — queda marcado en amarillo.",
-    "commissionVariesHint": "Este segmento tiene meses con una comisión distinta a la de enero. Véalos en la pestaña 4 · Origen de la tarifa."
+    "commissionVariesHint": "Este segmento tiene meses con una comisión distinta a la de enero. Véalos en la pestaña 4 · Origen de la tarifa.",
+    "discountRow": "Descuento vs Rack (todos)",
+    "discountRowHint": "Un solo descuento por mes para todos los segmentos que venden a tarifa rack. Escriba acá y se copia a las filas de abajo. Si prefiere diferenciar por canal, edite las filas directamente.",
+    "discountVariesHint": "Este mes tiene descuentos distintos por segmento. Escriba un valor acá para emparejarlos todos.",
+    "discountExcludesOwn": "no aplica a tarifa propia"
   }
 }
