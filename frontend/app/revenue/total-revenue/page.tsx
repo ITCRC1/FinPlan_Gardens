@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState, useCallback } from "react";
 import {
   getScenarios, getRackRates, getChannelsConfig, getOccupancyPct, getRoomTypes, rtLabel, pushRevenueToCheckbook,
+  getRackRooms, type RackRoomsResponse,
   type Scenario,
 } from "@/lib/api";
 import { fmtUsd } from "@/lib/fmt";
@@ -12,6 +13,7 @@ import { HOTEL_ID } from "@/lib/hotel";
 import { bajarCuadros, type FilaCuadro } from "@/lib/exportCuadro";
 import IrA from "@/components/IrA";
 import BloqueRevenue from "./BloqueRevenue";
+import BloqueModeloRac from "./BloqueModeloRac";
 
 // Mismo estilo que el "⬇ Excel" de Planning · Big Picture.
 const excelBtn: React.CSSProperties = {
@@ -64,9 +66,22 @@ export default function TotalRevenuePage() {
     })();
   }, []);
 
+  /** El modelo por segmento, SI es el que manda en este escenario.
+   *
+   *  Owner, 2026-10-28: con cuatro propiedades en modelos distintos, la vista
+   *  tiene que decir de dónde salió el número — no avisar que el que muestra
+   *  no sirve. Se carga aparte y en silencio: un escenario sin este modelo no
+   *  tiene por qué fallar acá.
+   */
+  const [modeloRac, setModeloRac] = useState<RackRoomsResponse | null>(null);
+
   const load = useCallback(async (sid: string) => {
     setLoading(true);
     try {
+      try {
+        const rr = await getRackRooms(sid);
+        setModeloRac(rr.conectado ? rr : null);
+      } catch { setModeloRac(null); }
       const [rack, ch, occ, rt] = await Promise.all([
         getRackRates(sid), getChannelsConfig(sid), getOccupancyPct(sid), getRoomTypes(HOTEL_ID, sid),
       ]);
@@ -248,6 +263,9 @@ export default function TotalRevenuePage() {
           {/* ⚠️ El de RACK primero, que es lo que se le cobra al huésped, y el
               NETO debajo, que es lo que queda y lo que mueve el P&L. En ese
               orden se lee la comisión del canal sin tener que calcularla. */}
+          {modeloRac && (
+            <BloqueModeloRac d={modeloRac} esc={scenarioId} />)}
+
           <BloqueRevenue
             meses={MONTHS}
             filas={rows.map(r => ({ id: r.id, code: r.code, name: r.name, valores: r.rack }))}
