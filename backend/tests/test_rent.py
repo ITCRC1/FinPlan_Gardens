@@ -19,7 +19,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.api.rent_api import _revisar_cuenta, _total_mensual
+from app.api.rent_api import _agrupar, _revisar_cuenta, _total_mensual
 from app.errores import ErrorApi
 from app.engine import pl_engine as pe
 from app.models.rent_line import RentLine
@@ -31,8 +31,9 @@ ARCHIVO = pathlib.Path(__file__).resolve().parents[1] / "app/seed_data/mapping_p
 VALIDAS = {str(c) for c in range(4520, 4536)}
 
 
-def _fila(nombre, monto, active=True):
-    f = RentLine(name=nombre, active=active)
+def _fila(nombre, monto, active=True, concepto="Alquiler", cuenta="", sort=0):
+    f = RentLine(name=nombre, active=active, concepto=concepto,
+                 account_code=cuenta, sort=sort, ubicacion="", notes="")
     for m in range(1, 13):
         f.set_month(m, Decimal(str(monto)))
     return f
@@ -131,3 +132,39 @@ def test_un_contrato_sin_cuenta_se_acepta():
     usadas: dict[str, str] = {}
     assert _revisar_cuenta("", "Local recién firmado", VALIDAS, usadas) == ""
     assert usadas == {}
+
+
+def test_un_inquilino_son_varias_filas_y_se_agrupan():
+    """«No quiero solo una cuenta, quiero un set de cuentas» (owner, 2026-11-01).
+    Un local paga alquiler, mantenimiento y servicios: tres cuentas, un solo
+    inquilino. En la base viven planas; la pantalla ve el contrato entero."""
+    filas = [_fila("Apotecaria Botánica", 500, concepto="Alquiler", cuenta="4520"),
+             _fila("Apotecaria Botánica", 80, concepto="Mantenimiento", cuenta="4521"),
+             _fila("Apotecaria Botánica", 40, concepto="Servicios", cuenta="4522"),
+             _fila("XFIT-ORC", 300, concepto="Alquiler", cuenta="4523", sort=1)]
+    contratos = _agrupar(filas)
+    assert [c["name"] for c in contratos] == ["Apotecaria Botánica", "XFIT-ORC"]
+    apo = contratos[0]
+    assert [i["concepto"] for i in apo["items"]] == ["Alquiler", "Mantenimiento", "Servicios"]
+    assert [i["cuenta"] for i in apo["items"]] == ["4520", "4521", "4522"]
+    # el contrato suma sus conceptos, mes a mes
+    assert apo["total_mensual"] == [620.0] * 12
+    assert apo["total"] == 7440.0
+
+
+def test_el_pl_ve_todos_los_conceptos_no_solo_el_alquiler():
+    """Si el P&L leyera solo la fila «Alquiler», el mantenimiento y los
+    servicios se cobrarían y no aparecerían en ningún lado."""
+    filas = [_fila("Apotecaria Botánica", 500, concepto="Alquiler"),
+             _fila("Apotecaria Botánica", 80, concepto="Mantenimiento"),
+             _fila("XFIT-ORC", 300, concepto="Alquiler")]
+    assert _total_mensual(filas) == [Decimal("880")] * 12
+
+
+def test_apagar_el_contrato_apaga_todos_sus_conceptos():
+    """El interruptor es del inquilino: si se fue, no cobra ninguno de sus
+    conceptos. Apagar uno por uno dejaría un cobro suelto sin que nadie lo vea."""
+    filas = [_fila("Local que cerró", 500, active=False, concepto="Alquiler"),
+             _fila("Local que cerró", 80, active=False, concepto="Mantenimiento"),
+             _fila("XFIT-ORC", 300, concepto="Alquiler")]
+    assert _total_mensual(filas) == [Decimal("300")] * 12

@@ -2554,19 +2554,24 @@ export async function saveClubFee(
   return api.put<ClubFee>(`/scenarios/${scenarioId}/club-fee/`, { base, meses });
 }
 
-/** Un contrato de alquiler, con sus doce meses. */
-export type RentFila = {
-  id: string; name: string; ubicacion: string; cuenta: string; notes: string;
-  sort: number; active: boolean; meses: number[]; total: number;
+/** Un concepto del contrato: qué se cobra, a qué cuenta y sus doce meses. */
+export type RentItem = {
+  id: string; concepto: string; cuenta: string; meses: number[]; total: number;
+};
+/** Un inquilino con su SET de conceptos. */
+export type RentContrato = {
+  name: string; ubicacion: string; notes: string; active: boolean; sort: number;
+  items: RentItem[]; total_mensual: number[]; total: number;
 };
 /** Una cuenta de alquiler del catálogo, y quién la tiene tomada. */
 export type RentCuenta = { cuenta: string; nombre: string; tomada_por: string };
 export type Rent = {
   scenario_id: string; year: number;
   modo_ingresos: string; llega_al_pl: boolean;
-  linea: { linea: string; dept: string; cuenta: string; nombre: string };
+  linea: { linea: string; dept: string; nombre: string };
   cuentas: RentCuenta[];
-  filas: RentFila[];
+  concepto_por_defecto: string;
+  contratos: RentContrato[];
   total_mensual: number[]; total_anual: number; nota: string;
 };
 export async function getRent(scenarioId: string): Promise<Rent> {
@@ -2576,10 +2581,11 @@ export async function getRent(scenarioId: string): Promise<Rent> {
  *  terminó pero cuya historia se quiere conservar va con `active: false`. */
 export async function saveRent(
   scenarioId: string,
-  filas: { id?: string; name: string; ubicacion: string; cuenta: string;
-           notes: string; sort: number; active: boolean; meses: number[] }[],
+  contratos: { name: string; ubicacion: string; notes: string; active: boolean;
+               items: { id?: string; concepto: string; cuenta: string;
+                        meses: number[] }[] }[],
 ): Promise<Rent> {
-  return api.put<Rent>(`/scenarios/${scenarioId}/rent/`, { filas });
+  return api.put<Rent>(`/scenarios/${scenarioId}/rent/`, { contratos });
 }
 
 export async function getPLFullDetail(

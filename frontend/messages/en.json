@@ -4473,21 +4473,24 @@
   },
   "rent": {
     "title": "Rent — leased premises",
-    "intro": "One lease per row. The sum of the ACTIVE ones is what the P&L sees, on line",
+    "intro": "One tenant per block, each with a set of charges — rent, maintenance, utilities — and its own account. The sum of the ACTIVE ones is what the P&L sees, on line",
     "tenant": "Tenant",
     "tenantPlaceholder": "Apotecaria Botánica",
     "where": "Where",
     "wherePlaceholder": "Sabor, Lobby…",
     "on": "Billing",
-    "onHint": "Unchecked: the lease keeps its history and stops adding to the P&L.",
+    "onHint": "Unchecked: the tenant keeps its history and none of its charges add to the P&L.",
     "off": "off",
-    "removeHint": "Remove from the list. Deleted on save — if it merely ended, untick «Billing».",
+    "removeHint": "Remove the whole tenant, with every charge. Deleted on save — if only the lease ended, untick «Billing».",
     "addTenant": "Add tenant",
     "total": "Total rent",
     "yearTotal": "Year",
     "saved": "Saved. The P&L already sees the new total.",
     "account": "Account",
     "accountNone": "— no account —",
-    "accountHint": "The lease's GL account (dept 0157). It is what lets the ledger be reconciled tenant by tenant. If one is missing, add it in Admin → Account Mapping and it shows up here."
+    "accountHint": "The lease's GL account (dept 0157). It is what lets the ledger be reconciled tenant by tenant. If one is missing, add it in Admin → Account Mapping and it shows up here.",
+    "whereOrAccount": "Where / Account",
+    "addConcept": "Add charge",
+    "removeItemHint": "Remove this charge from the lease."
   }
 }

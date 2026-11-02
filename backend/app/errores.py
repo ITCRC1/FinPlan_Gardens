@@ -709,6 +709,11 @@ MENSAJES: dict[str, dict[str, str]] = {
     "club.base_invalida": {
         "es": "La base debe ser una de: {bases}",
         "en": "The base must be one of: {bases}"},
+    "rent.concepto_repetido": {
+        "es": "«{nombre}» ya tiene un concepto «{concepto}». Para cobrar dos veces "
+              "lo mismo, ponele nombres distintos — si no, uno pisa al otro.",
+        "en": "«{nombre}» already has a «{concepto}» line. To bill the same thing "
+              "twice, give them different names — otherwise one overwrites the other."},
     "rent.cuenta_desconocida": {
         "es": "La cuenta {cuenta} no es una cuenta de alquiler. Las que se pueden "
               "elegir son las del departamento {dept} — si falta una, se agrega "

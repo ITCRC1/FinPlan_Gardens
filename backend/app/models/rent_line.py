@@ -12,6 +12,21 @@ y salen: hoy son tres, el mes que viene cuatro. Una línea fija por inquilino
 obligaría a un cambio de código y un deploy cada vez que se firma un contrato.
 Acá el owner agrega la fila desde la pantalla y la suma de las filas activas es
 la que viaja al P&L, por `persistir_ingreso_de_driver`, igual que el Club.
+
+**Una fila es (inquilino, concepto), no (inquilino).** Un local no paga una sola
+cosa: alquiler, mantenimiento, servicios, cada uno a su cuenta (owner,
+2026-11-01: «no quiero solo una cuenta, quiero un set de cuentas»). El inquilino
+es el conjunto de sus filas y la pantalla las agrupa por nombre.
+
+⚠️ **Por qué el concepto NO vive en una tabla hija.** La copia de escenario
+(`_clone_scenario_data`) recorre los modelos con `scenario_id` y le da un UUID
+nuevo a cada fila — pero NO reapunta llaves foráneas. Una tabla hija colgando de
+`rent_lines.id` se copiaría apuntando al contrato del escenario ORIGEN: el
+Budget copiado mostraría los conceptos del otro escenario, o ninguno, sin dar
+error. Plana, la copia funciona sola.
+
+El precio es que el nombre del inquilino se repite por fila. La pantalla lo
+edita UNA vez por grupo y lo escribe en todas, así que no se despega.
 """
 import uuid
 from decimal import Decimal
@@ -30,10 +45,12 @@ class RentLine(Base):
 
     __tablename__ = "rent_lines"
     __table_args__ = (
-        # Dos contratos con el MISMO nombre en el mismo escenario son un error
-        # de digitación, no dos inquilinos: el segundo pisaría al primero en
-        # cualquier reporte que agrupe por nombre.
-        UniqueConstraint("scenario_id", "name", name="uq_rent_line_nombre"),
+        # El mismo concepto dos veces para el mismo inquilino es un error de
+        # digitación, no dos cobros: el segundo pisaría al primero en cualquier
+        # reporte que agrupe. Distintos conceptos del mismo inquilino SÍ —es
+        # justamente el set de cuentas.
+        UniqueConstraint("scenario_id", "name", "concepto",
+                         name="uq_rent_line_concepto"),
     )
 
     id: Mapped[str] = mapped_column(
@@ -43,6 +60,9 @@ class RentLine(Base):
     hotel_id: Mapped[str] = mapped_column(String(10), index=True)
 
     name: Mapped[str] = mapped_column(String(120))
+    #: Qué se cobra: «Alquiler», «Mantenimiento», «Servicios»… Un inquilino
+    #: tiene una fila por concepto, cada una con su cuenta y sus doce meses.
+    concepto: Mapped[str] = mapped_column(String(80), default="Alquiler")
     #: Dónde está el local. Texto libre: «Sabor», «Lobby», «Área Recreativa».
     ubicacion: Mapped[str] = mapped_column(String(120), default="")
     #: La cuenta contable del contrato, de las del depto 0157 (4520-4535). Se

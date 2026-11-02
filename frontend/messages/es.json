@@ -4473,21 +4473,24 @@
   },
   "rent": {
     "title": "Rent — alquiler de locales",
-    "intro": "Un contrato por fila. La suma de los ACTIVOS es lo que el P&L ve, en la línea",
+    "intro": "Un inquilino por bloque, y adentro un set de conceptos — alquiler, mantenimiento, servicios — cada uno con su cuenta. La suma de los ACTIVOS es lo que el P&L ve, en la línea",
     "tenant": "Inquilino",
     "tenantPlaceholder": "Apotecaria Botánica",
     "where": "Dónde",
     "wherePlaceholder": "Sabor, Lobby…",
     "on": "Cobra",
-    "onHint": "Destildado: el contrato queda guardado con su historia y deja de sumar al P&L.",
+    "onHint": "Destildado: el inquilino queda guardado con su historia y ninguno de sus conceptos suma al P&L.",
     "off": "apagado",
-    "removeHint": "Quitarlo de la lista. Se borra al guardar — si solo terminó, destildá «Cobra».",
+    "removeHint": "Quitar el inquilino entero, con todos sus conceptos. Se borra al guardar — si solo terminó el contrato, destildá «Cobra».",
     "addTenant": "Agregar inquilino",
     "total": "Total alquiler",
     "yearTotal": "Año",
     "saved": "Guardado. El P&L ya ve el nuevo total.",
     "account": "Cuenta",
     "accountNone": "— sin cuenta —",
-    "accountHint": "La cuenta contable del contrato (depto 0157). Es lo que permite cotejar el mayor inquilino por inquilino. Si falta una, se agrega en Admin → Account Mapping y aparece acá sola."
+    "accountHint": "La cuenta contable del contrato (depto 0157). Es lo que permite cotejar el mayor inquilino por inquilino. Si falta una, se agrega en Admin → Account Mapping y aparece acá sola.",
+    "whereOrAccount": "Dónde / Cuenta",
+    "addConcept": "Agregar concepto",
+    "removeItemHint": "Quitar este concepto del contrato."
   }
 }
