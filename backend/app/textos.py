@@ -60,6 +60,9 @@ TEXTOS: dict[str, dict[str, str]] = {
     "linea_ingreso.ROOMS": {
         "es": "Room Revenue",
         "en": "Room Revenue"},
+    "linea_ingreso.RENT": {
+        "es": "Rent",
+        "en": "Rent"},
     "linea_ingreso.SPA": {
         "es": "Spa",
         "en": "Spa"},
@@ -69,6 +72,11 @@ TEXTOS: dict[str, dict[str, str]] = {
     "linea_ingreso.TRANSPORT": {
         "es": "Transportation",
         "en": "Transportation"},
+    "rent.suma_al_pl": {
+        "es": "La suma de los contratos ACTIVOS es lo que ve el P&L, en la línea Rent. "
+              "Un contrato apagado conserva su historia y no suma.",
+        "en": "The sum of ACTIVE leases is what the P&L sees, on the Rent line. "
+              "A disabled lease keeps its history and adds nothing."},
     "seccion.costs": {
         "es": "Costos de venta",
         "en": "Cost of sales"},

@@ -59,6 +59,7 @@ from app.api.provisioning_api import router as provisioning_router
 from app.api.export_api import router as export_router
 from app.api.pl_full_detail_api import router as pl_full_detail_router
 from app.api.club_stats_api import router as club_stats_router
+from app.api.rent_api import router as rent_router
 from app.api.owners_q_api import router as owners_q_router
 from app.api.sembrar_cuentas_api import router as sembrar_cuentas_router
 from app.api.cuadre_api import router as cuadre_router
@@ -207,6 +208,7 @@ app.include_router(provisioning_router, prefix="/api", dependencies=_guard)
 app.include_router(export_router, prefix="/api", dependencies=_guard)
 app.include_router(pl_full_detail_router, prefix="/api", dependencies=_guard)
 app.include_router(club_stats_router, prefix="/api", dependencies=_guard)
+app.include_router(rent_router, prefix="/api", dependencies=_guard)
 app.include_router(sembrar_cuentas_router, prefix="/api", dependencies=_guard)
 app.include_router(owners_q_router, prefix="/api", dependencies=_guard)
 # El Cuadre —Resumen vs Detalle, y cuál de las dos produce el P&L de hoy—

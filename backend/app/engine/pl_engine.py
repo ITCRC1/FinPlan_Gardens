@@ -82,6 +82,12 @@ OPERATING_DEPT_GROUPS: dict[str, list[str]] = {
     # respaldara: el ingreso se dibujaba arriba y el gasto abajo, en overhead, y
     # la utilidad salía igual al ingreso porque no le restaba nada.
     "RENTAL_1": ["0205"],
+    # Alquiler de locales (owner, 2026-11-01). Los inquilinos ocupan espacio
+    # DENTRO de Sabor Ojochal, y por eso su renta venía cayendo en las
+    # cuentas del 0155. Pero no es ingreso de Sabor: no tiene costo de
+    # venta ni sigue la ocupación, así que lleva su propio centro de
+    # utilidad. El detalle por inquilino vive en `rent_lines`.
+    "RENT": ["0157"],
 }
 
 # Overhead departments — subtracted after Operating Profit.
@@ -115,7 +121,7 @@ FALLBACK_OVERHEAD_GROUP = "OTHER_OVERHEAD"
 OPERATING_GROUP_ORDER = [
     "ROOMS", "FB", "PRIVATE_BAR", "SPA", "TOURS", "TIENDA", "RETAIL",
     "TRANSPORT", "LAUNDRY", "SABOR_OJOCHAL", "RENTAL_3", "CLUB", "RENTAL_1",
-    "AREC", "SUSTAINABILITY", "MISC_OTHER",
+    "RENT", "AREC", "SUSTAINABILITY", "MISC_OTHER",
 ]
 # Grupos que arriba SOLO traen ingreso: su costo no vive en el bloque operativo.
 # SUSTAINABILITY y MISC_OTHER nunca tuvieron costo propio; AREC lo tiene, pero
@@ -132,7 +138,7 @@ GROUP_NAMES = {
     "TIENDA": "Tienda", "RETAIL": "Gift Shop", "TRANSPORT": "Transportation",
     "LAUNDRY": "Laundry", "LAUNDRY_OPS": "Laundry Operations",
     "SABOR_OJOCHAL": "Sabor Ojochal", "RENTAL_3": "Rental #3",
-    "CLUB": "Club Ojochal", "RENTAL_1": "Rental #1",
+    "CLUB": "Club Ojochal", "RENTAL_1": "Rental #1", "RENT": "Rent",
     "AREC": "Área Recreativa",
     "SUSTAINABILITY": "Sustainability Fee",
     "MISC_OTHER": "Other / Misc Revenue",
@@ -162,6 +168,7 @@ REVENUE_LINE_TO_GROUP: dict[str, str] = {
     # de fin de año y los visitantes son un solo centro de utilidad.
     "club": "CLUB", "club_actividad": "CLUB", "club_visitantes": "CLUB",
     "arec": "AREC",
+    "rent": "RENT",
     "sustainability": "SUSTAINABILITY",
     "misc_other": "MISC_OTHER",
 }
@@ -174,7 +181,7 @@ GROUP_TO_REVENUE_LINE: dict[str, str] = {
     "TRANSPORT": "transport", "TIENDA": "tienda", "RETAIL": "retail",
     "LAUNDRY": "laundry",
     "SABOR_OJOCHAL": "innoceana", "RENTAL_3": "crowther",
-    "CLUB": "club", "AREC": "arec",
+    "CLUB": "club", "AREC": "arec", "RENT": "rent",
     "SUSTAINABILITY": "sustainability", "MISC_OTHER": "misc_other",
 }
 
@@ -202,6 +209,7 @@ REVENUE_LINE_TO_REPORT_LINE: dict[str, str] = {
     "club": "REV_CLUB", "club_actividad": "REV_CLUB",
     "club_visitantes": "REV_CLUB",
     "arec": "REV_AREC",
+    "rent": "REV_RENT",
     "sustainability": "REV_SUSTAINABILITY",
     "misc_other": "REV_MISC_OTHER",
 }
@@ -963,6 +971,7 @@ _MOTOR_TO_CANON: dict[str, tuple[str, str]] = {
     "REV_SABOR_OJOCHAL": ("REV_SABOR_OJOCHAL", "REVENUES"),
     "REV_RENTAL_3": ("REV_RENTAL_3", "REVENUES"),
     "REV_CLUB": ("REV_CLUB", "REVENUES"),
+    "REV_RENT": ("REV_RENT", "REVENUES"),
     "REV_AREC": ("REV_AREC", "REVENUES"),
     "REV_SUSTAINABILITY": ("REV_SUSTAINABILITY", "REVENUES"),
     "REV_MISC_OTHER": ("REV_MISC_OTHER", "REVENUES"),
@@ -980,6 +989,7 @@ _MOTOR_TO_CANON: dict[str, tuple[str, str]] = {
     "OPEXP_SABOR_OJOCHAL": ("OPEX_SABOR_OJOCHAL", "OPERATING EXPENSES"),
     "OPEXP_RENTAL_3": ("OPEX_RENTAL_3", "OPERATING EXPENSES"),
     "OPEXP_CLUB": ("OPEX_CLUB", "OPERATING EXPENSES"),
+    "OPEXP_RENT": ("OPEX_RENT", "OPERATING EXPENSES"),
     # AREC no emite OPEXP_ (su costo baja al overhead como OVH_AREC → OH_AREC)
     "TOTAL_OPEXP": ("TOTAL_OPERATING_EXPENSES", "OPERATING EXPENSES"),
     # Operating profit
@@ -995,6 +1005,7 @@ _MOTOR_TO_CANON: dict[str, tuple[str, str]] = {
     "OPPROFIT_SABOR_OJOCHAL": ("PROFIT_SABOR_OJOCHAL", "OPERATING PROFIT"),
     "OPPROFIT_RENTAL_3": ("PROFIT_RENTAL_3", "OPERATING PROFIT"),
     "OPPROFIT_CLUB": ("PROFIT_CLUB", "OPERATING PROFIT"),
+    "OPPROFIT_RENT": ("PROFIT_RENT", "OPERATING PROFIT"),
     "OPPROFIT_AREC": ("PROFIT_AREC", "OPERATING PROFIT"),
     "OPPROFIT_SUSTAINABILITY": ("PROFIT_SUSTAINABILITY", "OPERATING PROFIT"),
     "OPPROFIT_MISC_OTHER": ("PROFIT_MISC_OTHER", "OPERATING PROFIT"),

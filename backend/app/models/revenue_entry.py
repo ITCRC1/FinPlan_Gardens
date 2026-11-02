@@ -9,7 +9,7 @@ from app.db import Base
 REVENUE_LINES = (
     "ROOMS", "FOOD", "BEVERAGE", "FNB_MISC", "SPA", "ACTIVITIES",
     "TRANSPORT", "RETAIL", "INNOCEANA", "LAUNDRY", "SUSTAINABILITY",
-    "CLUB", "CLUB_ACTIVIDAD", "CLUB_VISITANTES",
+    "CLUB", "CLUB_ACTIVIDAD", "CLUB_VISITANTES", "RENT",
 )
 
 # line code -> human label shown in the UI
@@ -31,6 +31,9 @@ REVENUE_LINE_LABELS = {
     "CLUB": "Ingreso Club Ojochal",
     "CLUB_ACTIVIDAD": "Actividad fin de año",
     "CLUB_VISITANTES": "Visitantes",
+    # El alquiler de locales. La suma de los contratos de `rent_lines`, que
+    # el owner administra en Planning → Rent. No se digita acá.
+    "RENT": "Rent",
 }
 
 # Línea del checkbook → cuenta contable con la que va amarrada.
@@ -47,6 +50,9 @@ REVENUE_LINE_ACCOUNT: dict[str, tuple[str, str]] = {   # línea → (depto, cuen
     "CLUB": ("260", "4500"),
     "CLUB_ACTIVIDAD": ("260", "4501"),
     "CLUB_VISITANTES": ("260", "4502"),
+    # Depto propio: el alquiler no es ingreso de Sabor Ojochal aunque el
+    # local esté adentro. Ver `app/models/rent_line.py`.
+    "RENT": ("0157", "4520"),
 }
 
 

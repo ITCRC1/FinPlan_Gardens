@@ -58,6 +58,8 @@ class RevenueResult:
     club: Decimal = Decimal("0")
     club_actividad: Decimal = Decimal("0")
     club_visitantes: Decimal = Decimal("0")
+    # Alquiler de locales — suma de los contratos activos de `rent_lines`.
+    rent: Decimal = Decimal("0")
     # KPIs
     rooms_available: int = 0
     rooms_occupied: Decimal = Decimal("0")
@@ -78,7 +80,8 @@ class RevenueResult:
                 # así que las dos cifras se contradecían. Hoy no se nota porque
                 # está en cero en todos los escenarios; se corrige antes de que
                 # haya plata que lo delate.
-                + self.club + self.club_actividad + self.club_visitantes)
+                + self.club + self.club_actividad + self.club_visitantes
+                + self.rent)
 
     @property
     def occupancy_pct(self) -> Decimal:

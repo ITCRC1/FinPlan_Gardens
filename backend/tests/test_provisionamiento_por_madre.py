@@ -6,7 +6,7 @@ madres, y cuando escogés una madre automáticamente adoptás todo el paquete…
 estructura 0110 conlleva implícito 0115 y 0116 como estructura primaria, y todos
 los hijos, que ya lleva por default».
 
-Antes la matriz listaba los 39 departamentos en fila plana, con cuatro casillas
+Antes la matriz listaba los 40 departamentos en fila plana, con cuatro casillas
 independientes cada uno: se podía prender Ama de Llaves y apagar Front Desk
 siendo los dos la misma Habitaciones, y nada avisaba.
 
@@ -93,13 +93,13 @@ def test_un_padre_que_no_existe_no_hace_desaparecer_al_hijo():
 
 
 # ── el paquete ────────────────────────────────────────────────────────────────
-def test_la_matriz_es_de_madres_y_no_de_39_sueltos():
+def test_la_matriz_es_de_madres_y_no_de_40_sueltos():
     catalogo = _catalogo_real()
     madre_de, paquete = _paquetes(catalogo)
-    assert len(catalogo) == 39, "el catálogo del grupo"
+    assert len(catalogo) == 40, "el catálogo del grupo"
     hijos = [c for c, m in madre_de.items() if m != c]
     assert len(hijos) == 16, hijos
-    assert len(paquete) == 23, sorted(paquete)
+    assert len(paquete) == 24, sorted(paquete)
 
 
 def test_los_sets_de_producto_entran_en_el_paquete_de_su_madre():
@@ -132,7 +132,7 @@ def test_la_madre_va_primero_en_su_paquete():
 
 
 def test_ningun_departamento_queda_afuera_de_algun_paquete():
-    """39 departamentos repartidos en 23 paquetes, sin perder ni repetir a
+    """40 departamentos repartidos en 24 paquetes, sin perder ni repetir a
     nadie: un departamento que no esté en ninguno desaparece de la pantalla."""
     catalogo = _catalogo_real()
     _, paquete = _paquetes(catalogo)
@@ -221,9 +221,9 @@ def _matriz_de_hoy():
     return _filas_por_madre(_catalogo_real(), set(APAGADO_HOY), {})
 
 
-def test_hoy_la_matriz_muestra_23_madres():
+def test_hoy_la_matriz_muestra_24_madres():
     filas, _ = _matriz_de_hoy()
-    assert len(filas) == 23
+    assert len(filas) == 24
     assert all(f["parent_dept_code"] == "" for f in filas), (
         "todas las filas son madres")
 
@@ -239,7 +239,7 @@ def test_las_cuatro_casillas_apagadas_de_hoy_siguen_apagadas():
 
 
 def test_no_se_apago_ni_una_casilla_de_mas():
-    """El resto de la matriz queda intacto: 23 madres × 4 dimensiones, menos las
+    """El resto de la matriz queda intacto: 24 madres × 4 dimensiones, menos las
     que no aplican, menos las cuatro de siempre."""
     filas, _ = _matriz_de_hoy()
     prendidas = sum(1 for f in filas for v in f["dims"].values()

@@ -36,6 +36,9 @@ DEPT_NAMES = {
     # 0155/0156: departamentos de alquiler desde 2026-09-15. Eran
     # Innoceana y Crowther Lab, heredados del clon de Corcovado.
     "0155": "Sabor Ojochal", "0156": "Rental #3",
+    # Alquiler de locales — su propio centro de utilidad desde el
+    # 2026-11-01. El detalle por inquilino vive en `rent_lines`.
+    "0157": "Rent",
     # 0181 = Gerencia, hijo de 0180 (owner, 2026-08-14). Acá decía «Management»
     # y el mapeo decía «Departamento de Beneficios Empleados»: dos verdades para
     # el mismo código. Manda la planilla, que es la que tiene gente — GERENTE
@@ -71,6 +74,7 @@ DEPT_ALIASES = {
     "0152": ["transport"],
     "0155": ["rental #2", "rental 2", "innocean"],
     "0156": ["rental #3", "rental 3", "crowther", "crowler"],
+    "0157": ["rent", "alquiler", "alquileres", "arrendamiento"],
     "0161": ["lavander"],
     "0180": ["administ"], "0190": ["ventas", "mercadeo", "marketing"],
     # 0205: «sabor» es el alias nuevo. «claro»/«huerta» se QUEDAN a propósito —

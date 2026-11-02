@@ -709,6 +709,15 @@ MENSAJES: dict[str, dict[str, str]] = {
     "club.base_invalida": {
         "es": "La base debe ser una de: {bases}",
         "en": "The base must be one of: {bases}"},
+    "rent.doce_meses": {
+        "es": "Cada contrato lleva doce montos, uno por mes.",
+        "en": "Each lease needs twelve amounts, one per month."},
+    "rent.nombre_repetido": {
+        "es": "Ya hay un contrato que se llama «{nombre}».",
+        "en": "There is already a lease named «{nombre}»."},
+    "rent.nombre_vacio": {
+        "es": "El contrato necesita un nombre: es como se identifica al inquilino.",
+        "en": "A lease needs a name: that is how the tenant is identified."},
     "consolidado.sin_escenario": {
         "es": "{propiedad} no tiene escenario {tipo} de {anio}",
         "en": "{propiedad} has no {tipo} scenario for {anio}"},

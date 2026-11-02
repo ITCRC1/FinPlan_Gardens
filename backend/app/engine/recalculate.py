@@ -449,7 +449,7 @@ def revenue_line_dict(r: RevenueResult) -> dict[str, Decimal]:
         "sustainability": r.sustainability, "spa": r.spa, "retail": r.retail,
         "fnb_misc": r.fnb_misc, "innoceana": r.innoceana, "laundry": r.laundry,
         "club": r.club, "club_actividad": r.club_actividad,
-        "club_visitantes": r.club_visitantes,
+        "club_visitantes": r.club_visitantes, "rent": r.rent,
     }
 
 

@@ -107,6 +107,7 @@
       "users": "Usuarios",
       "auditActivity": "Auditoría / actividad",
       "club": "Club Ojochal (membresías)",
+      "rent": "Rent — alquiler de locales",
       "origenes": "Orígenes de datos (QuickBooks, backoffice)",
       "monthEndPL": "P&L del mes (Real · Budget · Reforecast)",
       "statistics": "Estadísticas (clase 9)",
@@ -4469,5 +4470,21 @@
     "discountRowHint": "Un solo descuento por mes para todos los segmentos que venden a tarifa rack. Escriba acá y se copia a las filas de abajo. Si prefiere diferenciar por canal, edite las filas directamente.",
     "discountVariesHint": "Este mes tiene descuentos distintos por segmento. Escriba un valor acá para emparejarlos todos.",
     "discountExcludesOwn": "no aplica a tarifa propia"
+  },
+  "rent": {
+    "title": "Rent — alquiler de locales",
+    "intro": "Un contrato por fila. La suma de los ACTIVOS es lo que el P&L ve, en la línea",
+    "tenant": "Inquilino",
+    "tenantPlaceholder": "Apotecaria Botánica",
+    "where": "Dónde",
+    "wherePlaceholder": "Sabor, Lobby…",
+    "on": "Cobra",
+    "onHint": "Destildado: el contrato queda guardado con su historia y deja de sumar al P&L.",
+    "off": "apagado",
+    "removeHint": "Quitarlo de la lista. Se borra al guardar — si solo terminó, destildá «Cobra».",
+    "addTenant": "Agregar inquilino",
+    "total": "Total alquiler",
+    "yearTotal": "Año",
+    "saved": "Guardado. El P&L ya ve el nuevo total."
   }
 }

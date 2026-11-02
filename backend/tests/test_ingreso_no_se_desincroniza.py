@@ -40,7 +40,7 @@ class _Resultado:
         for campo in ("rooms", "food", "beverage", "activities", "transport",
                       "sustainability", "spa", "retail", "fnb_misc",
                       "innoceana", "laundry", "club", "club_actividad",
-                      "club_visitantes"):
+                      "club_visitantes", "rent"):
             setattr(self, campo, kw.get(campo, Decimal("0")))
 
 

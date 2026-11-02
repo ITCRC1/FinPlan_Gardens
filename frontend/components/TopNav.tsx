@@ -92,6 +92,9 @@ export const NAV: NavGroup[] = [
       { key: "rackRooms", href: "/revenue/rack-rooms" },
       { key: "spaCapture", href: "/revenue/spa" },
       { key: "club", href: "/revenue/club" },
+      // Alquiler de locales. Va en el bloque de ingresos y no en uno
+      // propio: es un centro de utilidad más, como el Club.
+      { key: "rent", href: "/revenue/rent" },
       { key: "totalRevenue", href: "/revenue/total-revenue" },
       { key: "revenueCheckbook", href: "/revenue/checkbook" },
       { key: "payroll", header: true },

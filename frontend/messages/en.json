@@ -107,6 +107,7 @@
       "users": "Users",
       "auditActivity": "Audit / activity",
       "club": "Club Ojochal (memberships)",
+      "rent": "Rent — leased premises",
       "origenes": "Data sources (QuickBooks, back office)",
       "monthEndPL": "Month P&L (Actual · Budget · Reforecast)",
       "statistics": "Statistics (class 9)",
@@ -4469,5 +4470,21 @@
     "discountRowHint": "A single discount per month for every segment that sells at rack rate. Type here and it copies to the rows below. To differentiate by channel, edit the rows directly.",
     "discountVariesHint": "This month has different discounts per segment. Type a value here to level them all.",
     "discountExcludesOwn": "does not apply to own rate"
+  },
+  "rent": {
+    "title": "Rent — leased premises",
+    "intro": "One lease per row. The sum of the ACTIVE ones is what the P&L sees, on line",
+    "tenant": "Tenant",
+    "tenantPlaceholder": "Apotecaria Botánica",
+    "where": "Where",
+    "wherePlaceholder": "Sabor, Lobby…",
+    "on": "Billing",
+    "onHint": "Unchecked: the lease keeps its history and stops adding to the P&L.",
+    "off": "off",
+    "removeHint": "Remove from the list. Deleted on save — if it merely ended, untick «Billing».",
+    "addTenant": "Add tenant",
+    "total": "Total rent",
+    "yearTotal": "Year",
+    "saved": "Saved. The P&L already sees the new total."
   }
 }

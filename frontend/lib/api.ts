@@ -2554,6 +2554,31 @@ export async function saveClubFee(
   return api.put<ClubFee>(`/scenarios/${scenarioId}/club-fee/`, { base, meses });
 }
 
+/** Un contrato de alquiler, con sus doce meses. */
+export type RentFila = {
+  id: string; name: string; ubicacion: string; notes: string;
+  sort: number; active: boolean; meses: number[]; total: number;
+};
+export type Rent = {
+  scenario_id: string; year: number;
+  modo_ingresos: string; llega_al_pl: boolean;
+  linea: { linea: string; dept: string; cuenta: string; nombre: string };
+  filas: RentFila[];
+  total_mensual: number[]; total_anual: number; nota: string;
+};
+export async function getRent(scenarioId: string): Promise<Rent> {
+  return api.get<Rent>(`/scenarios/${scenarioId}/rent/`);
+}
+/** Se manda la lista COMPLETA: lo que no viene, se borra. Un contrato que
+ *  terminó pero cuya historia se quiere conservar va con `active: false`. */
+export async function saveRent(
+  scenarioId: string,
+  filas: { id?: string; name: string; ubicacion: string; notes: string;
+           sort: number; active: boolean; meses: number[] }[],
+): Promise<Rent> {
+  return api.put<Rent>(`/scenarios/${scenarioId}/rent/`, { filas });
+}
+
 export async function getPLFullDetail(
   scenarioId: string, incluirVacios = false,
 ): Promise<PLFullDetail> {

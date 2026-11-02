@@ -40,6 +40,7 @@ from app.models.sales_channel_config import SalesChannelConfig
 from app.models.package_config import PackageConfig
 from app.models.revenue_other import RevenueOther
 from app.models.revenue_entry import RevenueEntry
+from app.models.rent_line import RentLine
 from app.models.spa_budget import SpaBudget
 from app.models.scenario_stat import ScenarioStat
 from app.models.statistical_entry import StatisticalEntry
@@ -150,6 +151,10 @@ COPY_DATASETS: dict[str, list] = {
                  # El precio de la cuota del Club es modelo de ingresos, igual
                  # que el capture rate y el precio del Spa.
                  ClubFeeBudget,
+                 # Los contratos de alquiler son plan de ingresos: una copia
+                 # sin ellos nace con la línea Rent en cero y sin nada que
+                 # explique por qué, igual que pasaría con la ocupación.
+                 RentLine,
                  # ── El modelo de Rooms por canal y su tarifario ───────────
                  # Las noches por segmento son plan de ingresos, igual que la
                  # ocupacion: una copia sin ellas nace con el interruptor
