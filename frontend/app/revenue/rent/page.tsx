@@ -51,12 +51,12 @@ function scnLabel(s: Scenario) {
 /** Lo que se edita en pantalla: los montos van como texto para que borrar una
  *  casilla no la vuelva 0 mientras se tipea. */
 type Borrador = {
-  id?: string; name: string; ubicacion: string; notes: string;
+  id?: string; name: string; ubicacion: string; cuenta: string; notes: string;
   active: boolean; meses: string[];
 };
-const vacia = (): Borrador => ({ name: "", ubicacion: "", notes: "", active: true, meses: Array(12).fill("") });
+const vacia = (): Borrador => ({ name: "", ubicacion: "", cuenta: "", notes: "", active: true, meses: Array(12).fill("") });
 const desdeApi = (f: RentFila): Borrador => ({
-  id: f.id, name: f.name, ubicacion: f.ubicacion, notes: f.notes,
+  id: f.id, name: f.name, ubicacion: f.ubicacion, cuenta: f.cuenta, notes: f.notes,
   active: f.active, meses: f.meses.map(v => (v ? String(v) : "")),
 });
 
@@ -143,7 +143,7 @@ export default function RentPage() {
     try {
       const d = await saveRent(scenarioId, filas.map((f, i) => ({
         id: f.id, name: f.name.trim(), ubicacion: f.ubicacion.trim(),
-        notes: f.notes.trim(), sort: i, active: f.active,
+        cuenta: f.cuenta, notes: f.notes.trim(), sort: i, active: f.active,
         meses: f.meses.map(num),
       })));
       setDatos(d); setFilas(d.filas.map(desdeApi)); setMsg(t("saved"));
@@ -156,7 +156,10 @@ export default function RentPage() {
     const meses = Array.from({ length: 12 }, (_, m) => m);
     const cuadro: FilaCuadro[] = [
       ...filas.map(f => ({
-        label: f.active ? f.name : `${f.name} (${t("off")})`,
+        // Con la cuenta adelante, el cuadro se coteja contra el mayor sin
+        // tener que adivinar qué local es cuál.
+        label: [f.cuenta, f.active ? f.name : `${f.name} (${t("off")})`]
+          .filter(Boolean).join(" · "),
         valores: [...meses.map(m => num(f.meses[m])), totalFila(f)],
       })),
       { label: `${datos.linea.cuenta} · ${datos.linea.nombre}`, es_total: true,
@@ -216,6 +219,7 @@ export default function RentPage() {
             <tr>
               <th style={{ ...th, minWidth: 210 }}>{t("tenant")}</th>
               <th style={{ ...th, minWidth: 130 }}>{t("where")}</th>
+              <th style={{ ...th, minWidth: 150 }}>{t("account")}</th>
               <th style={{ ...th, width: 54, textAlign: "center" }}>{t("on")}</th>
               {MESES.map(m => <th key={m} style={thNum}>{m}</th>)}
               <th style={thNum}>{t("yearTotal")}</th>
@@ -232,6 +236,25 @@ export default function RentPage() {
                 <td style={td}>
                   <input value={f.ubicacion} placeholder={t("wherePlaceholder")}
                     onChange={e => cambiar(i, { ubicacion: e.target.value })} style={inputTexto} />
+                </td>
+                <td style={td}>
+                  {/* La lista sale del catálogo, no del código. Una cuenta que
+                      ya tomó otro contrato se muestra deshabilitada en vez de
+                      esconderse: así se ve POR QUÉ no se puede elegir. */}
+                  <select value={f.cuenta} title={t("accountHint")}
+                    onChange={e => cambiar(i, { cuenta: e.target.value })}
+                    style={{ ...inputTexto, width: 150 }}>
+                    <option value="">{t("accountNone")}</option>
+                    {(datos?.cuentas ?? []).map(c => {
+                      const ocupada = !!c.tomada_por && c.cuenta !== f.cuenta;
+                      return (
+                        <option key={c.cuenta} value={c.cuenta} disabled={ocupada}>
+                          {c.cuenta}{c.nombre ? ` · ${c.nombre}` : ""}
+                          {ocupada ? ` — ${c.tomada_por}` : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </td>
                 <td style={{ ...td, textAlign: "center" }}>
                   <input type="checkbox" checked={f.active} title={t("onHint")}
@@ -254,7 +277,7 @@ export default function RentPage() {
               </tr>
             ))}
             <tr>
-              <td colSpan={3} style={{ ...td, fontWeight: 700 }}>
+              <td colSpan={4} style={{ ...td, fontWeight: 700 }}>
                 {datos ? `${datos.linea.cuenta} · ${datos.linea.nombre}` : t("total")}
               </td>
               {Array.from({ length: 12 }, (_, m) => (

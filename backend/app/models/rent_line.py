@@ -45,6 +45,14 @@ class RentLine(Base):
     name: Mapped[str] = mapped_column(String(120))
     #: Dónde está el local. Texto libre: «Sabor», «Lobby», «Área Recreativa».
     ubicacion: Mapped[str] = mapped_column(String(120), default="")
+    #: La cuenta contable del contrato, de las del depto 0157 (4520-4535). Se
+    #: ELIGE, no se escribe: la lista sale de `account_mapping`, así que agregar
+    #: una cuenta nueva es una regla en Admin y no un cambio de código.
+    #:
+    #: Vacía se permite a propósito —un contrato se negocia antes de que
+    #: contabilidad abra su cuenta— y en ese caso la renta igual suma al P&L por
+    #: la línea Rent; lo que no se puede es cotejarla contra el mayor.
+    account_code: Mapped[str] = mapped_column(String(10), default="")
     notes: Mapped[str] = mapped_column(String(300), default="")
     #: Orden en pantalla. No se usa el nombre: el owner los ordena como quiere.
     sort: Mapped[int] = mapped_column(Integer, default=0)

@@ -2556,13 +2556,16 @@ export async function saveClubFee(
 
 /** Un contrato de alquiler, con sus doce meses. */
 export type RentFila = {
-  id: string; name: string; ubicacion: string; notes: string;
+  id: string; name: string; ubicacion: string; cuenta: string; notes: string;
   sort: number; active: boolean; meses: number[]; total: number;
 };
+/** Una cuenta de alquiler del catálogo, y quién la tiene tomada. */
+export type RentCuenta = { cuenta: string; nombre: string; tomada_por: string };
 export type Rent = {
   scenario_id: string; year: number;
   modo_ingresos: string; llega_al_pl: boolean;
   linea: { linea: string; dept: string; cuenta: string; nombre: string };
+  cuentas: RentCuenta[];
   filas: RentFila[];
   total_mensual: number[]; total_anual: number; nota: string;
 };
@@ -2573,8 +2576,8 @@ export async function getRent(scenarioId: string): Promise<Rent> {
  *  terminó pero cuya historia se quiere conservar va con `active: false`. */
 export async function saveRent(
   scenarioId: string,
-  filas: { id?: string; name: string; ubicacion: string; notes: string;
-           sort: number; active: boolean; meses: number[] }[],
+  filas: { id?: string; name: string; ubicacion: string; cuenta: string;
+           notes: string; sort: number; active: boolean; meses: number[] }[],
 ): Promise<Rent> {
   return api.put<Rent>(`/scenarios/${scenarioId}/rent/`, { filas });
 }

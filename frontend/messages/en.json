@@ -4485,6 +4485,9 @@
     "addTenant": "Add tenant",
     "total": "Total rent",
     "yearTotal": "Year",
-    "saved": "Saved. The P&L already sees the new total."
+    "saved": "Saved. The P&L already sees the new total.",
+    "account": "Account",
+    "accountNone": "— no account —",
+    "accountHint": "The lease's GL account (dept 0157). It is what lets the ledger be reconciled tenant by tenant. If one is missing, add it in Admin → Account Mapping and it shows up here."
   }
 }

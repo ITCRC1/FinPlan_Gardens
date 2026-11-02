@@ -17,13 +17,18 @@ import json
 import pathlib
 from decimal import Decimal
 
-from app.api.rent_api import _total_mensual
+import pytest
+
+from app.api.rent_api import _revisar_cuenta, _total_mensual
+from app.errores import ErrorApi
 from app.engine import pl_engine as pe
 from app.models.rent_line import RentLine
 from app.models.revenue_entry import (REVENUE_LINE_ACCOUNT, REVENUE_LINE_LABELS,
                                       REVENUE_LINES)
 
 ARCHIVO = pathlib.Path(__file__).resolve().parents[1] / "app/seed_data/mapping_pl.json"
+#: Las que siembra el seed para el depto 0157.
+VALIDAS = {str(c) for c in range(4520, 4536)}
 
 
 def _fila(nombre, monto, active=True):
@@ -86,9 +91,11 @@ def test_el_seed_mapea_el_0157_y_no_le_roba_cuentas_a_nadie():
     mias = [r for r in am if r.get("dept_code") == "0157"]
     assert mias, "el 0157 no tiene una sola regla: su gasto caería en Habitaciones"
     assert {r["report_line_code"] for r in mias} == {"REV_RENT", "OPEX_RENT", "COS_RENT"}
+    # Dieciséis cuentas: hoy se alquilan tres locales y el rango deja aire para
+    # que agregar un inquilino sea elegir una cuenta libre, no tocar código.
     ingreso = sorted(r["account_code"] for r in mias
                      if r["report_line_code"] == "REV_RENT")
-    assert ingreso == ["4520", "4521", "4522", "4523"]
+    assert ingreso == [str(c) for c in range(4520, 4536)]
     # La llave de negocio es (report_id, depto, cuenta, origen). Dos reglas con
     # la misma llave se insertarían como una sola y la otra se perdería.
     llaves = [(r["report_id"], r["source_department"], r["account_code"],
@@ -99,3 +106,28 @@ def test_el_seed_mapea_el_0157_y_no_le_roba_cuentas_a_nadie():
 def test_el_0157_esta_en_el_catalogo_de_departamentos():
     from app.seed_department_catalog import DEPT_NAMES
     assert DEPT_NAMES["0157"] == "Rent"
+
+
+def test_dos_contratos_no_pueden_compartir_cuenta():
+    """El P&L cuadraría igual; el detalle por cuenta quedaría mezclado y no
+    habría forma de cotejar el mayor inquilino por inquilino."""
+    usadas: dict[str, str] = {}
+    assert _revisar_cuenta("4520", "Apotecaria Botánica", VALIDAS, usadas) == "4520"
+    with pytest.raises(ErrorApi) as e:
+        _revisar_cuenta("4520", "XFIT-ORC", VALIDAS, usadas)
+    assert e.value.status_code == 422
+
+
+def test_una_cuenta_que_no_es_de_alquiler_se_rechaza():
+    """4500 es de Sabor Ojochal y del Club. Aceptarla mandaría el actual del
+    alquiler al renglón de otro departamento, con el total cuadrando."""
+    with pytest.raises(ErrorApi) as e:
+        _revisar_cuenta("4500", "Momento Wine Paradise", VALIDAS, {})
+    assert e.value.status_code == 422
+
+
+def test_un_contrato_sin_cuenta_se_acepta():
+    """Se firma antes de que contabilidad abra la cuenta. La renta igual suma."""
+    usadas: dict[str, str] = {}
+    assert _revisar_cuenta("", "Local recién firmado", VALIDAS, usadas) == ""
+    assert usadas == {}

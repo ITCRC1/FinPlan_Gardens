@@ -4485,6 +4485,9 @@
     "addTenant": "Agregar inquilino",
     "total": "Total alquiler",
     "yearTotal": "Año",
-    "saved": "Guardado. El P&L ya ve el nuevo total."
+    "saved": "Guardado. El P&L ya ve el nuevo total.",
+    "account": "Cuenta",
+    "accountNone": "— sin cuenta —",
+    "accountHint": "La cuenta contable del contrato (depto 0157). Es lo que permite cotejar el mayor inquilino por inquilino. Si falta una, se agrega en Admin → Account Mapping y aparece acá sola."
   }
 }

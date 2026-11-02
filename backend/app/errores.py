@@ -709,6 +709,18 @@ MENSAJES: dict[str, dict[str, str]] = {
     "club.base_invalida": {
         "es": "La base debe ser una de: {bases}",
         "en": "The base must be one of: {bases}"},
+    "rent.cuenta_desconocida": {
+        "es": "La cuenta {cuenta} no es una cuenta de alquiler. Las que se pueden "
+              "elegir son las del departamento {dept} — si falta una, se agrega "
+              "en Admin → Account Mapping.",
+        "en": "Account {cuenta} is not a rent account. Only the ones in "
+              "department {dept} can be chosen — if one is missing, add it in "
+              "Admin → Account Mapping."},
+    "rent.cuenta_repetida": {
+        "es": "La cuenta {cuenta} ya la usa «{nombre}». Dos contratos en la misma "
+              "cuenta dejan el mayor sin forma de cotejarse inquilino por inquilino.",
+        "en": "Account {cuenta} is already used by «{nombre}». Two leases on one "
+              "account leave the ledger with no way to be reconciled tenant by tenant."},
     "rent.doce_meses": {
         "es": "Cada contrato lleva doce montos, uno por mes.",
         "en": "Each lease needs twelve amounts, one per month."},
