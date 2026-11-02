@@ -64,8 +64,8 @@ TEXTOS: dict[str, dict[str, str]] = {
         "es": "Spa",
         "en": "Spa"},
     "linea_ingreso.SUSTAINABILITY": {
-        "es": "Sustainability Fee & Misc. Revenue",
-        "en": "Sustainability Fee & Misc. Revenue"},
+        "es": "Misc. Revenue",
+        "en": "Misc. Revenue"},
     "linea_ingreso.TRANSPORT": {
         "es": "Transportation",
         "en": "Transportation"},

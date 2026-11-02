@@ -24,7 +24,7 @@ REVENUE_LINE_LABELS = {
     "RETAIL": "Retail",
     "INNOCEANA": "Sabor Ojochal",
     "LAUNDRY": "Laundry",
-    "SUSTAINABILITY": "Sustainability Fee & Misc. Revenue",
+    "SUSTAINABILITY": "Misc. Revenue",
     # Las tres fuentes de ingreso del Club Madresal. Los nombres NO son
     # invención: son los de `account_mapping` (depto 260) y hay una prueba que
     # falla si se separan del catálogo.
