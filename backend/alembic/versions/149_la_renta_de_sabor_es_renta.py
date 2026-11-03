@@ -1,85 +1,49 @@
-"""Lo que el mayor llama «Sabor Ojochal» es alquiler de locales.
+"""(REVERTIDA) Mandar la renta del 0155 a `REV_RENT` no alcanza.
 
 Revision ID: 149
 Revises: 148
 Create Date: 2026-11-02
 
+Esta migración **ya no hace nada**, y el archivo se conserva sólo para no
+romper la cadena de Alembic: la base de producción alcanzó a quedar marcada en
+149 antes de que se revirtiera, y borrar el archivo deja `alembic upgrade head`
+sin poder ubicar la revisión.
+
+QUÉ INTENTABA
 Owner, 2026-11-02: «no hay restaurantes en ojochal» · «es alquiler de locales
-restaurantes solamente».
+restaurantes solamente». El ingreso del depto 0155 debía pasar de
+`REV_SABOR_OJOCHAL` a `REV_RENT`, por (departamento, cuenta).
 
-QUÉ PASABA
-El depto 0155 venía del linaje de clones modelado como un restaurante entero
-—ingreso 4500/4501/4502, costo de venta 5500/5501, planilla 6000-6030 y opex
-7xxx—, y su ingreso caía en el renglón `REV_SABOR_OJOCHAL`, que Hotel
-Consolidation rotula «Restaurantes externos». Pero el hotel no opera ningún
-restaurante: alquila los locales. Por eso el 0155 **nunca tuvo un solo colón de
-costo, planilla ni opex** en ningún escenario: sólo ingreso, que es justo lo que
-se ve cuando se cobra una renta.
+POR QUÉ NO ALCANZÓ — y por qué se vio sólo en producción
+Cambiar `account_mapping` mueve el ingreso **del detalle del mayor**. Pero el
+P&L de un ACTUAL no sale siempre de ahí: `_compute_pl_month_core` prefiere el
+resumen por línea que se importó (`actual_pl_lines`), y sólo baja al detalle si
+`_detalle_fino_si_cuadra` confirma que los dos dan lo mismo. Al mover la cuenta
+de renglón, el detalle dejó de cuadrar contra el resumen —que sigue trayendo la
+plata en la línea vieja— y el guardián se quedó con el resumen.
 
-El total del P&L siempre cuadró —por eso nadie lo notó— pero la plata estaba en
-el renglón equivocado, y partida en dos: la renta de 2025 y 2026 en «Sabor
-Ojochal» y la de 2027 en «Rent» (los cuatro contratos del módulo de alquileres,
-depto 0157). Dos renglones para la misma cosa no se pueden comparar año contra
-año, que es exactamente lo que el consolidado necesita hacer.
+Resultado medido en producción: los $64.661,42 de 2026 y los $108.628,67 de
+2025 **desaparecieron de los dos renglones**. Ni en Sabor Ojochal ni en Rent.
+Y el total de ingresos del ACTUAL 2026 bajó de $222.037,87 a $157.376,45.
 
-QUÉ HACE
-Manda el ingreso del 0155 a `REV_RENT`, por (departamento, cuenta). Es el UPDATE
-que la migración 146 dejó anotado para cuando el owner lo pidiera:
+Ningún test lo atrapó porque todos corren sobre el mapeo y la plantilla; el
+desvío por el resumen importado sólo aparece con un ACTUAL que tenga resumen
+cargado, que es justo lo que no hay en la suite.
 
-    «⚠️ La renta YA facturada en 2026 sigue donde está (cuentas del 0155).
-      Moverla sin que el owner lo pida cambiaría un P&L ya cerrado; cuando lo
-      pida, es un UPDATE de `account_mapping` por (depto, cuenta).»
-
-Mueve plata real de meses cerrados: 2025 $108,628.67 · 2026 ene-jul $64,661.42 ·
-proyección ago-dic del forecast $34,640.05. No cambia ningún total: sale de un
-renglón de ingreso y entra en otro.
-
-LA CUENTA NO SE TOCA
-Las filas del mayor siguen en 4500/0155 con su nombre original. Renombrarlas
-rompería la trazabilidad contra la contabilidad, que es de donde salieron. Lo
-que cambia es a qué renglón del reporte suman. Los contratos nuevos sí usan el
-rango 4520-4535 del 0157, así que el detalle por cuenta muestra el origen real
-de cada año — que es la idea.
-
-⚠️ EL SEED MANDA SOBRE ESTA TABLA. Esta migración sola se revertiría en el
-próximo despliegue. El cambio de verdad vive en `app/seed_data/mapping_pl.json`
-(las tres filas de ingreso del 0155) y esta migración sólo lo adelanta a la base
-actual. Las dos cosas van juntas o ninguna sirve.
-
-Blindado por `tests/test_la_renta_no_es_restaurante.py`.
+LO QUE FALTA, cuando se retome: mover también el resumen por línea del ACTUAL
+(o decidir que para estos escenarios manda el detalle), y recién entonces el
+mapeo. El mapeo solo deja la plata en el aire.
 """
-from alembic import op
-import sqlalchemy as sa
 
 revision = "149"
 down_revision = "148"
 branch_labels = None
 depends_on = None
 
-DEPTO = "Departamento de Sabor Ojochal"
-NOTA = ("Alquiler de locales, no operacion de restaurante: el owner confirmo "
-        "2026-11-02 que en Ojochal no hay restaurante propio. El mayor lo "
-        "sigue llamando «Ingreso Sabor Ojochal» por arrastre del catalogo; "
-        "el renglon del P&L es Rent, igual que los contratos del 0157.")
-
-
-def _mover(desde: str, hacia: str, nombre: str, orden: int, nota) -> None:
-    op.get_bind().execute(sa.text("""
-        UPDATE account_mapping
-           SET report_line_code = :hacia,
-               report_line_name = :nombre,
-               display_order    = :orden,
-               notes            = :nota
-         WHERE source_department = :depto
-           AND lower(source_origin) = 'revenue'
-           AND report_line_code = :desde
-    """), {"desde": desde, "hacia": hacia, "nombre": nombre,
-           "orden": orden, "nota": nota, "depto": DEPTO})
-
 
 def upgrade() -> None:
-    _mover("REV_SABOR_OJOCHAL", "REV_RENT", "Rent", 28, NOTA)
+    """Revertida: el seed deja el mapeo en `REV_SABOR_OJOCHAL`."""
 
 
 def downgrade() -> None:
-    _mover("REV_RENT", "REV_SABOR_OJOCHAL", "Sabor Ojochal", 27, None)
+    pass
