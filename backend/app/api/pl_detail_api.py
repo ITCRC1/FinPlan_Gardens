@@ -88,6 +88,7 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Tours", ["REV_TOURS"]),
     ("det", "Retail-Gift Shop", ["REV_RETAIL", "REV_TIENDA"]),
     ("det", "Club Ojochal", ["REV_CLUB"]),
+    ("det", "Área Recreativa", ["REV_AREC"]),
     ("det", "Laundry", ["REV_LAUNDRY"]),
     ("det", "Private Bar", ["REV_PRIVATE_BAR"]),
     # Rental #1 (0205). ⚠️ Su ingreso NO tenía renglón acá: la línea
@@ -95,6 +96,14 @@ CONSOLIDADO: list[tuple] = [
     # pero no se dibujaba en ninguna fila — el mismo agujero que tuvo la
     # lavandería en julio 2026.
     ("det", "Rental #1", ["REV_RENTAL_1"]),
+    # Alquiler de locales: los contratos del 0157 y la renta histórica del
+    # 0155, que el mayor llama «Sabor Ojochal» (migración 149). Sin esta fila
+    # su plata entra a TOTAL REVENUES y no se dibuja en ninguna línea — el
+    # mismo agujero que tuvo Rental #1 acá arriba y la lavandería en julio
+    # 2026. Un ingreso que suma y no se ve es peor que uno que falta: el total
+    # cuadra, así que nadie lo busca.
+    ("det", "Rent", ["REV_RENT"]),
+    ("det", "Rental #3", ["REV_RENTAL_3"]),
     ("det", "Miscellaneous  Revenue", ["REV_MISC_OTHER", "REV_SUSTAINABILITY",
                                        "REV_TRANSPORTATION", "REV_SABOR_OJOCHAL"]),
     ("esp", "", []),
@@ -111,6 +120,8 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Laundry", ["OPEX_LAUNDRY", "COS_LAUNDRY"]),
     ("det", "Private Bar", ["OPEX_PRIVATE_BAR", "COS_PRIVATE_BAR"]),
     ("det", "Rental #1", ["OPEX_RENTAL_1", "COS_RENTAL_1"]),
+    ("det", "Rent", ["OPEX_RENT", "COS_RENT"]),
+    ("det", "Rental #3", ["OPEX_RENTAL_3", "COS_RENTAL_3"]),
     ("det", "Miscellaneous  Revenue", ["OPEX_MISCELLANEOUS", "OPEX_TRANSPORTATION",
                                        "COS_TRANSPORTATION", "OPEX_SABOR_OJOCHAL",
                                        "COS_SABOR_OJOCHAL"]),
@@ -124,9 +135,12 @@ CONSOLIDADO: list[tuple] = [
     ("det", "Tours", ["PROFIT_TOURS"]),
     ("det", "Retail-Gift Shop", ["PROFIT_RETAIL", "PROFIT_TIENDA"]),
     ("det", "Club Ojochal", ["PROFIT_CLUB"]),
+    ("det", "Área Recreativa", ["PROFIT_AREC"]),
     ("det", "Laundry", ["PROFIT_LAUNDRY"]),
     ("det", "Private Bar", ["PROFIT_PRIVATE_BAR"]),
     ("det", "Rental #1", ["PROFIT_RENTAL_1"]),
+    ("det", "Rent", ["PROFIT_RENT"]),
+    ("det", "Rental #3", ["PROFIT_RENTAL_3"]),
     ("det", "Miscellaneous  Revenue", ["PROFIT_MISC_OTHER", "PROFIT_SUSTAINABILITY",
                                        "PROFIT_TRANSPORTATION", "PROFIT_SABOR_OJOCHAL"]),
     ("esp", "", []),
