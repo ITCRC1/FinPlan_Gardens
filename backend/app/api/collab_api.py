@@ -40,6 +40,118 @@ def _user_brief(u: User | None) -> dict | None:
 _STATUS_RANK = {"pending": 0, "in_progress": 1, "in_review": 2, "approved": 3}
 
 
+#: Qué dimensión de provisionamiento gobierna cada sección del tablero. Las
+#: que no están acá no se arman con departamentos: `master` es una sola fila y
+#: `nonop` son rubros de abajo-GOP, que no tienen depto.
+SECCION_DIM = {"revenue": "REVENUE", "costs": "COST",
+               "payroll": "PAYROLL", "opex": "OPEX"}
+
+#: Los rubros below-GOP del tablero. No salen del catálogo de departamentos
+#: porque no son departamentos; su rótulo lo pone la pantalla.
+NONOP_REFS = ["mgmt", "insurance", "capital", "financial", "depreciation"]
+
+
+async def tablero_del_escenario(db: AsyncSession, scenario: Scenario) -> list[dict]:
+    """Las filas del Tablero del Presupuesto, armadas desde el catálogo.
+
+    **Por qué existe** (owner, 2026-11-03): *«revisá la naturaleza de cada
+    sección y las que no apliquen que tengan la opción que se esconda»* ·
+    *«planilla es extensa, opex es extensa»*.
+
+    Antes la pantalla armaba esta lista sola, con una copia del catálogo de
+    departamentos escrita en el navegador (`CWL_DEPTS`). Eso tenía dos
+    consecuencias: mostraba los 37 departamentos en TODAS las secciones —Ingreso
+    en Mantenimiento, costo de venta en Administración— y no se enteraba de lo
+    que la propiedad había apagado en provisionamiento. El tablero pedía aprobar
+    126 casillas de las cuales muchas no existen para este hotel.
+
+    Ahora sale de donde ya vive la verdad, y por eso no hay que mantener una
+    segunda lista:
+
+    · `is_revenue_dept` dice quién factura. Ingreso sólo se ofrece ahí —es la
+      misma regla que usa el provisionamiento (`_aplica`), no una copia.
+    · `depts_habilitados` es el interruptor que el owner ya usa para apagar un
+      departamento en una dimensión. El tablero lo respeta, así que esconder
+      algo acá y esconderlo en el checkbook son **el mismo acto**, no dos.
+    · `_conteos` dice cuántas líneas hay detrás de cada (depto, dimensión). Va
+      en cada fila como `datos` para que apagar sea una decisión informada y no
+      a ciegas.
+
+    Cada fila trae además `madre`: el provisionamiento trabaja por paquete y
+    rechaza un hijo suelto, así que la pantalla necesita saber a quién mandarle
+    el apagado.
+    """
+    from app.api.provisioning_api import (DIMS_DEPT, _aplica, _conteos,
+                                          depts_habilitados)
+    from app.models.department_catalog import DepartmentCatalog
+
+    catalogo = [d for d in (await db.execute(
+        select(DepartmentCatalog).order_by(
+            DepartmentCatalog.display_order, DepartmentCatalog.dept_code)
+    )).scalars().all() if d.active]
+
+    conteos = await _conteos(db, scenario.hotel_id)
+    apagados = {dim: (await depts_habilitados(db, scenario.hotel_id, dim) or set())
+                for dim in DIMS_DEPT}
+
+    salida = [{"section": "master", "items": [{"ref": "", "label_key": "sec.general"}]}]
+    for seccion, dim in SECCION_DIM.items():
+        items = []
+        for d in catalogo:
+            codigo = (d.dept_code or "").strip()
+            if not codigo or not _aplica(d, dim) or codigo in apagados[dim]:
+                continue
+            items.append({
+                "ref": codigo,
+                "label": d.dept_name or codigo,
+                "datos": int(conteos.get(codigo, {}).get(dim, 0)),
+                "madre": (d.parent_dept_code or "").strip() or codigo,
+                "dimension": dim,
+            })
+        salida.append({"section": seccion, "items": items})
+    salida.append({"section": "nonop",
+                   "items": [{"ref": r, "label_key": f"nonop.{r}"} for r in NONOP_REFS]})
+    return salida
+
+
+class BulkAssigneeBody(BaseModel):
+    assignee_id: str | None = None
+    #: Vacío = todas las secciones del tablero.
+    sections: list[str] = []
+
+
+@router.post("/scenarios/{scenario_id}/assignments/bulk/")
+async def asignar_en_bloque(
+    scenario_id: str, body: BulkAssigneeBody,
+    _u: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db),
+):
+    """Asigna de un golpe todas las filas del tablero a una persona.
+
+    Owner, 2026-11-03: *«quiero que asignes todas las tareas a Bismark»*, sobre
+    un tablero de 126 casillas. Una por una son 126 viajes al servidor y 126
+    recargas de la pantalla; acá es uno.
+
+    Las filas que no existían se crean, igual que cuando se asigna una sola:
+    `SectionAssignment` nace al primer toque, no al crear el escenario.
+    """
+    scenario = await _scenario_or_404(scenario_id, db)
+    if body.assignee_id:
+        if await db.get(User, body.assignee_id) is None:
+            raise ErrorApi(404, "usuario.no_encontrado")
+
+    pedidas = set(body.sections or [])
+    tocadas = 0
+    for grupo in await tablero_del_escenario(db, scenario):
+        if pedidas and grupo["section"] not in pedidas:
+            continue
+        for item in grupo["items"]:
+            fila = await _get_or_create(scenario_id, grupo["section"], item["ref"], db)
+            fila.assignee_id = body.assignee_id
+            tocadas += 1
+    await db.commit()
+    return {"ok": True, "asignadas": tocadas, "assignee_id": body.assignee_id}
+
+
 @router.get("/scenarios/{scenario_id}/assignments/")
 async def get_assignments(
     scenario_id: str, idioma: str = Idioma,
@@ -75,7 +187,12 @@ async def get_assignments(
             status, locked = "pending", False
         sections.append({"section": sec, "label": SECTION_LABELS[sec],
                          "status": status, "locked": locked, "assignee": None})
-    return {"scenario_id": scenario_id, "sections": sections, "assignments": assignments}
+    return {"scenario_id": scenario_id, "sections": sections,
+            "assignments": assignments,
+            # La ESTRUCTURA del tablero: qué filas existen para esta propiedad.
+            # Viaja acá y no en su propio endpoint para que la pantalla no pueda
+            # pintar filas de un escenario con la estructura de otro.
+            "tablero": await tablero_del_escenario(db, await _scenario_or_404(scenario_id, db))}
 
 
 async def _get_or_create(sid: str, section: str, ref: str, db: AsyncSession) -> SectionAssignment:

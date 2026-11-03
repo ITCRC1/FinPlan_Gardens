@@ -3,8 +3,10 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import {
   getScenarios, getAssignments, setAssignee, setSectionStatus, setSectionLock,
-  getValidations, listUsers, getStoredUser,
+  getValidations, listUsers, getStoredUser, asignarTableroEnBloque,
+  saveProvisioningDepts,
   type Scenario, type AssignmentRow, type AuthUser, type Validation,
+  type TableroGrupo,
 } from "@/lib/api";
 import { CWL_DEPTS } from "@/lib/cwl-depts";
 import { HOTEL_ID } from "@/lib/hotel";
@@ -33,6 +35,13 @@ const STRUCT: { section: string; lk: string; items: { ref: string; label?: strin
   { section: "nonop", lk: "sec.nonop", items: NONOP.map(d => ({ ref: d.dept_code, lk: d.lk })) },
 ];
 
+// Owner, 2026-11-03: «que tenga opcion de escoger pendiente, en proceso y
+// finalizado». Son los tres que se ofrecen en el selector. `in_review` sigue
+// existiendo en el modelo —lo usa el circuito de revision— y por eso se agrega
+// como opcion SOLO cuando la fila ya esta en ese estado: sacarlo del selector
+// sin mas haria que una fila en revision se mostrara como otra cosa.
+const ESTADOS = ["pending", "in_progress", "approved"];
+
 function statusStyle(s: string): React.CSSProperties {
   const m: Record<string, [string, string]> = {
     pending: ["var(--text-secondary)", "var(--bg-elevated, var(--bg-surface))"],
@@ -60,6 +69,14 @@ export default function BoardPage() {
   // creado; y se acuerda de cual se estaba mirando.
   const [scenarioId, setScenarioId] = useEscenarioDe("board:budget", scenarios, "budget", undefined, true);
   const [rows, setRows] = useState<Record<string, AssignmentRow>>({});  // key section|ref
+  // La ESTRUCTURA del tablero la manda el backend, armada desde el catalogo:
+  // Ingreso solo donde se factura, y sin lo que la propiedad apago. Si todavia
+  // no llega (backend viejo), se cae a la lista de siempre.
+  const [tablero, setTablero] = useState<TableroGrupo[] | null>(null);
+  // «que se pueda guardar»: cada cambio guarda solo, y esto lo hace visible.
+  const [guardado, setGuardado] = useState<string | null>(null);
+  const [enBloque, setEnBloque] = useState(false);
+  const [aQuien, setAQuien] = useState("");
   const [vals, setVals] = useState<Validation[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -87,6 +104,7 @@ export default function BoardPage() {
       const map: Record<string, AssignmentRow> = {};
       for (const a of r.assignments) map[`${a.section}|${a.ref}`] = a;
       setRows(map);
+      setTablero(r.tablero ?? null);
       setVals(v?.validations ?? []);
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
     finally { setLoading(false); }
@@ -94,20 +112,84 @@ export default function BoardPage() {
 
   useEffect(() => { if (scenarioId) load(scenarioId); }, [scenarioId, load]);
 
-  async function act(fn: () => Promise<unknown>) {
+  async function act(fn: () => Promise<unknown>, marca?: string) {
     setError(null);
-    try { await fn(); await load(scenarioId); }
+    try {
+      await fn();
+      await load(scenarioId);
+      // El guardado es inmediato; sin esta senal el usuario no sabe si quedo.
+      if (marca) { setGuardado(marca); setTimeout(() => setGuardado(null), 1800); }
+    }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
+
+  /** Asigna TODO el tablero a una persona, en un solo viaje. */
+  async function asignarTodo() {
+    if (!scenarioId) return;
+    setEnBloque(true);
+    try {
+      const r = await asignarTableroEnBloque(scenarioId, aQuien || null);
+      await load(scenarioId);
+      setGuardado(t("bulkDone", { n: r.asignadas }));
+      setTimeout(() => setGuardado(null), 2500);
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
+    finally { setEnBloque(false); }
+  }
+
+  /** Esconde un departamento de una seccion.
+   *
+   *  No es un interruptor propio del tablero: llama al MISMO provisionamiento
+   *  que gobierna los checkbooks, asi que esconder aca y esconder alla son el
+   *  mismo acto. El provisionamiento trabaja por paquete y rechaza un hijo
+   *  suelto, por eso se le manda la madre; y si el departamento tiene lineas
+   *  cargadas contesta 409 y se vuelve a preguntar con `force`, para que nadie
+   *  esconda plata sin enterarse. */
+  async function esconder(it: { ref: string; label?: string; lk?: string;
+                                madre?: string; dimension?: string; datos?: number }) {
+    if (!it.dimension) return;
+    const nombre = lbl(it);
+    if (!confirm(t("hideConfirm", { dept: nombre }))) return;
+    const fila = [{ dept_code: it.madre || it.ref, dimension: it.dimension, enabled: false }];
+    try {
+      await saveProvisioningDepts(HOTEL_ID, fila);
+    } catch (e: unknown) {
+      const det = (e as { detalle?: { detalle?: string } })?.detalle?.detalle;
+      if (!det) { setError(e instanceof Error ? e.message : "Error"); return; }
+      if (!confirm(t("hideHasData", { detalle: det }))) return;
+      try { await saveProvisioningDepts(HOTEL_ID, fila, true); }
+      catch (e2: unknown) { setError(e2 instanceof Error ? e2.message : "Error"); return; }
+    }
+    await load(scenarioId);
+    setGuardado(t("hidden", { dept: nombre }));
+    setTimeout(() => setGuardado(null), 2500);
+  }
   const get = (section: string, ref: string): AssignmentRow | null => rows[`${section}|${ref}`] ?? null;
+
+  // El rotulo de cada seccion sale de STRUCT, que ya lo tiene; del backend
+  // viene QUE filas hay, no como se llaman las secciones.
+  const SEC_LK = Object.fromEntries(STRUCT.map(g => [g.section, g.lk]));
+  // Mientras el backend nuevo no este desplegado, `tablero` llega vacio y la
+  // pantalla sigue andando con la lista de siempre.
+  const GRUPOS = (tablero ?? STRUCT).map(g => ({
+    section: g.section,
+    lk: SEC_LK[g.section] ?? g.section,
+    items: (g.items as Array<Record<string, unknown>>).map(it => ({
+      ref: String(it.ref ?? ""),
+      label: it.label as string | undefined,
+      lk: (it.label_key ?? it.lk) as string | undefined,
+      datos: it.datos as number | undefined,
+      madre: it.madre as string | undefined,
+      dimension: it.dimension as string | undefined,
+    })),
+  }));
 
   const valsFor = (section: string) => vals.filter(v => v.section === section && v.level !== "ok");
   const vColor = (lvl: string) => lvl === "error" ? "var(--accent-red, #C0392B)" : "var(--accent-amber, #856404)";
   const nWarn = vals.filter(v => v.level === "warn").length;
   const nErr = vals.filter(v => v.level === "error").length;
 
-  const totalItems = STRUCT.reduce((s, g) => s + g.items.length, 0);
-  const totalApproved = STRUCT.reduce((s, g) => s + g.items.filter(it => get(g.section, it.ref)?.status === "approved").length, 0);
+  const totalItems = GRUPOS.reduce((s, g) => s + g.items.length, 0);
+  const totalApproved = GRUPOS.reduce((s, g) => s + g.items.filter(it => get(g.section, it.ref)?.status === "approved").length, 0);
   const pct = totalItems ? Math.round(totalApproved / totalItems * 100) : 0;
 
   return (
@@ -137,13 +219,38 @@ export default function BoardPage() {
         )}
       </div>
 
+      {isAdmin && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+                      padding: "8px 12px", marginBottom: 10, borderRadius: 7,
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border-medium)" }}>
+          <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            {t("bulkLabel")}
+          </span>
+          <select value={aQuien} onChange={e => setAQuien(e.target.value)}
+                  className="fin-input" style={{ fontSize: 12, minWidth: 180 }}>
+            <option value="">{t("unassignedOption")}</option>
+            {users.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+          </select>
+          <button style={{ ...sbtn, color: "var(--brand)", borderColor: "var(--brand)" }}
+                  disabled={enBloque} onClick={asignarTodo}>
+            {enBloque ? tc("loading") : t("bulkApply")}
+          </button>
+          {guardado && (
+            <span style={{ fontSize: 12, color: "var(--accent-green, #1A7F4B)" }}>
+              ✓ {guardado}
+            </span>
+          )}
+        </div>
+      )}
+
       {error && <div style={{ color: "var(--accent-red, #C0392B)", fontSize: 13, marginBottom: 8 }}>{error}</div>}
 
       {loading ? (
         <div style={{ color: "var(--text-secondary)", padding: 24 }}>{tc("loading")}</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {STRUCT.map(g => {
+          {GRUPOS.map(g => {
             const appr = g.items.filter(it => get(g.section, it.ref)?.status === "approved").length;
             const sv = valsFor(g.section);
             const isOpen = open[g.section] ?? false;
@@ -185,6 +292,12 @@ export default function BoardPage() {
                           padding: "8px 14px 8px 30px", borderTop: "1px solid var(--border-medium)" }}>
                           <span style={{ fontSize: 13, color: "var(--text-primary)", flex: 1, minWidth: 130 }}>
                             {lbl(it)} {locked && <span title={t("lockedTitle")}>🔒</span>}
+                            {it.datos === 0 && (
+                              <span style={{ marginLeft: 6, fontSize: 10,
+                                             color: "var(--text-disabled)" }}>
+                                {t("noData")}
+                              </span>
+                            )}
                           </span>
                           {isAdmin ? (
                             <select value={a?.assignee?.id ?? ""} className="fin-input" style={{ fontSize: 11, minWidth: 150, padding: "2px 4px" }}
@@ -195,16 +308,31 @@ export default function BoardPage() {
                           ) : (
                             <span style={{ fontSize: 11, color: "var(--text-secondary)", minWidth: 120 }}>{a?.assignee?.name ?? t("unassigned")}{mine && t("youSuffix")}</span>
                           )}
-                          <span style={statusStyle(status)}>{statusLabel(status)}</span>
+                          {canMove ? (
+                            <select value={status} className="fin-input"
+                              style={{ ...statusStyle(status), fontSize: 11, minWidth: 110,
+                                       padding: "2px 4px", cursor: "pointer" }}
+                              onChange={e => act(
+                                () => setSectionStatus(scenarioId, g.section, e.target.value, it.ref),
+                                t("savedOne", { dept: lbl(it) }))}>
+                              {ESTADOS.map(st => (
+                                <option key={st} value={st}>{statusLabel(st)}</option>
+                              ))}
+                              {/* Sólo si la fila YA está en revisión: el selector
+                                  tiene que poder mostrar su valor real. */}
+                              {!ESTADOS.includes(status) && (
+                                <option value={status}>{statusLabel(status)}</option>
+                              )}
+                            </select>
+                          ) : (
+                            <span style={statusStyle(status)}>{statusLabel(status)}</span>
+                          )}
                           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                            {canMove && status === "pending" && <button style={sbtn} onClick={() => act(() => setSectionStatus(scenarioId, g.section, "in_progress", it.ref))}>{t("start")}</button>}
-                            {canMove && status === "in_progress" && <button style={sbtn} onClick={() => act(() => setSectionStatus(scenarioId, g.section, "in_review", it.ref))}>{t("toReview")}</button>}
-                            {isAdmin && status === "in_review" && <>
-                              <button style={{ ...sbtn, color: "var(--accent-green, #1A7F4B)" }} onClick={() => act(() => setSectionStatus(scenarioId, g.section, "approved", it.ref))}>{t("approve")}</button>
-                              <button style={sbtn} onClick={() => act(() => setSectionStatus(scenarioId, g.section, "in_progress", it.ref))}>{t("sendBack")}</button>
-                            </>}
-                            {isAdmin && status === "approved" && <button style={sbtn} onClick={() => act(() => setSectionStatus(scenarioId, g.section, "in_progress", it.ref))}>{t("reopen")}</button>}
-                            {isAdmin && <button style={{ ...sbtn, color: locked ? "var(--accent-amber, #856404)" : "var(--text-secondary)" }} onClick={() => act(() => setSectionLock(scenarioId, g.section, !locked, it.ref))}>{locked ? t("open") : t("lock")}</button>}
+                            {isAdmin && <button style={{ ...sbtn, color: locked ? "var(--accent-amber, #856404)" : "var(--text-secondary)" }} onClick={() => act(() => setSectionLock(scenarioId, g.section, !locked, it.ref), t("savedOne", { dept: lbl(it) }))}>{locked ? t("open") : t("lock")}</button>}
+                            {isAdmin && it.dimension && (
+                              <button style={sbtn} title={t("hideTitle")}
+                                      onClick={() => esconder(it)}>{t("hide")}</button>
+                            )}
                           </div>
                         </div>
                       );

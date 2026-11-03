@@ -122,8 +122,37 @@ export interface AssignmentRow {
   assignee: { id: string; name: string; email: string } | null;
 }
 
-export async function getAssignments(scenarioId: string): Promise<{ scenario_id: string; sections: SectionRow[]; assignments: AssignmentRow[] }> {
+/** Una fila del tablero. La ESTRUCTURA la arma el backend desde el catálogo de
+ *  departamentos, no la pantalla: así Ingreso sólo aparece donde se factura y
+ *  lo apagado en provisionamiento no se pide aprobar. */
+export interface TableroItem {
+  ref: string;
+  /** Nombre del departamento (viene de la base, no se traduce). */
+  label?: string;
+  /** Clave del catálogo de textos, para lo que SÍ es texto de pantalla. */
+  label_key?: string;
+  /** Cuántas líneas hay cargadas detrás: apagar con esto a la vista. */
+  datos?: number;
+  /** A quién mandarle el apagado: el provisionamiento trabaja por paquete. */
+  madre?: string;
+  dimension?: string;
+}
+export interface TableroGrupo { section: string; items: TableroItem[] }
+
+export async function getAssignments(scenarioId: string): Promise<{
+  scenario_id: string; sections: SectionRow[]; assignments: AssignmentRow[];
+  tablero?: TableroGrupo[];
+}> {
   return api.get(`/scenarios/${scenarioId}/assignments/`);
+}
+
+/** Asigna de un golpe todas las filas del tablero (o sólo unas secciones).
+ *  126 casillas una por una son 126 viajes; acá es uno. */
+export async function asignarTableroEnBloque(
+  scenarioId: string, assigneeId: string | null, sections: string[] = [],
+): Promise<{ ok: boolean; asignadas: number }> {
+  return api.post(`/scenarios/${scenarioId}/assignments/bulk/`,
+                  { assignee_id: assigneeId, sections });
 }
 export interface Validation { section: string; level: string; message: string; }
 export async function getValidations(scenarioId: string): Promise<{ validations: Validation[]; errors: number; warnings: number }> {

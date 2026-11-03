@@ -2207,7 +2207,17 @@
     },
     "unassigned": "Sin asignar",
     "unassignedOption": "— Sin asignar —",
-    "youSuffix": " · vos"
+    "youSuffix": " · vos",
+    "bulkLabel": "Asignar TODO el tablero a:",
+    "bulkApply": "Asignar todo",
+    "bulkDone": "{n} tareas asignadas",
+    "savedOne": "Guardado · {dept}",
+    "hide": "Esconder",
+    "hideTitle": "Esconde este departamento de esta sección, acá y en su checkbook. Se vuelve a prender en Master Data → Provisionamiento.",
+    "hideConfirm": "¿Esconder «{dept}» de esta sección?\n\nTambién deja de aparecer en su checkbook. Se puede volver a prender en Master Data → Provisionamiento.",
+    "hideHasData": "Este departamento TIENE datos cargados:\n\n{detalle}\n\nEsconderlo lo saca de la pantalla pero su plata sigue sumando en el P&L. ¿Esconderlo igual?",
+    "hidden": "«{dept}» escondido",
+    "noData": "sin datos"
   },
   "mkt": {
     "subtitle": "{hotel} · Análisis de marketing · ",
