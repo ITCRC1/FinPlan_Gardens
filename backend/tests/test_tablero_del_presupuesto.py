@@ -135,3 +135,56 @@ def test_asignar_todo_es_un_solo_viaje():
     """126 casillas una por una son 126 llamadas y 126 recargas."""
     texto = PANTALLA.read_text(encoding="utf-8")
     assert "asignarTableroEnBloque" in texto
+
+
+# ── El aviso antes de esconder algo que tiene datos ──────────────────────────
+
+@pytest.mark.skipif(not PANTALLA.exists(), reason="no está el frontend")
+def test_el_aviso_de_datos_cargados_se_lee_por_clave():
+    """El error del API trae `clave` (QUÉ error fue) y `detalle` (el mensaje ya
+    traducido, un **string**).
+
+    La primera versión leía `e.detalle.detalle`, como si `detalle` fuera un
+    objeto. Nunca encontraba nada, así que caía al camino del error genérico y
+    el aviso «0230 en Costos (13 líneas); esconderlo NO borra esos datos,
+    siguen sumando en el P&L» —que es justo el que hay que leer ANTES de
+    esconder— salía como JSON crudo, y la pregunta de confirmación no aparecía
+    nunca. El usuario lo vio en pantalla.
+
+    Mirar la clave y no la prosa es además lo que pide `app/errores.py`: la
+    prosa cambia de idioma."""
+    texto = PANTALLA.read_text(encoding="utf-8")
+    assert '"provisionamiento.datos_cargados"' in texto, (
+        "el tablero dejó de reconocer el 409: el aviso vuelve a salir crudo y "
+        "sin preguntar")
+    assert "err.detalle" in texto, "el mensaje traducido es un string, no un objeto"
+    assert "detalle?.detalle" not in texto, (
+        "volvió la lectura equivocada del error")
+
+
+# ── Esconder tiene vuelta ────────────────────────────────────────────────────
+
+def test_los_escondidos_viajan_aparte_y_no_se_omiten():
+    """Owner, 2026-11-03: *«¿ahora cómo hago para volver visible a los
+    escondidos?»*.
+
+    Un botón que esconde sin forma de deshacerlo desde el mismo lugar deja al
+    usuario buscando el departamento entre las 23 filas del provisionamiento —
+    y el que escondió de más ni siquiera sabe cuál fue. Por eso los apagados
+    no se omiten: viajan en `escondidos` y el tablero los ofrece para volver a
+    prender."""
+    import inspect
+    from app.api import collab_api
+    fuente = inspect.getsource(collab_api.tablero_del_escenario)
+    assert '"escondidos": escondidos' in fuente
+    assert "(escondidos if codigo in apagados[dim] else items)" in fuente, (
+        "volvieron a omitirse: esconder quedaría sin vuelta desde el tablero")
+
+
+@pytest.mark.skipif(not PANTALLA.exists(), reason="no está el frontend")
+def test_la_pantalla_ofrece_volver_a_mostrar():
+    texto = PANTALLA.read_text(encoding="utf-8")
+    assert "async function mostrar(" in texto
+    assert "g.escondidos.length > 0" in texto, (
+        "el pie con los escondidos desapareció de la sección")
+    assert "enabled: true" in texto, "mostrar tiene que PRENDER, no apagar"

@@ -136,6 +136,27 @@ export default function BoardPage() {
     finally { setEnBloque(false); }
   }
 
+  /** Vuelve a prender un departamento que se habia escondido.
+   *
+   *  Prender BORRA la fila de apagado en vez de escribir `enabled=true`, asi
+   *  que no deja rastro: la tabla solo guarda lo que de verdad se apago. */
+  async function mostrar(it: { ref: string; label?: string; lk?: string;
+                               madre?: string; dimension?: string }) {
+    if (!it.dimension) return;
+    try {
+      await saveProvisioningDepts(
+        HOTEL_ID, [{ dept_code: it.madre || it.ref, dimension: it.dimension,
+                     enabled: true }]);
+    } catch (e: unknown) {
+      const err = e as { detalle?: string };
+      setError(err.detalle || (e instanceof Error ? e.message : "Error"));
+      return;
+    }
+    await load(scenarioId);
+    setGuardado(t("shown", { dept: lbl(it) }));
+    setTimeout(() => setGuardado(null), 2500);
+  }
+
   /** Esconde un departamento de una seccion.
    *
    *  No es un interruptor propio del tablero: llama al MISMO provisionamiento
@@ -153,11 +174,23 @@ export default function BoardPage() {
     try {
       await saveProvisioningDepts(HOTEL_ID, fila);
     } catch (e: unknown) {
-      const det = (e as { detalle?: { detalle?: string } })?.detalle?.detalle;
-      if (!det) { setError(e instanceof Error ? e.message : "Error"); return; }
-      if (!confirm(t("hideHasData", { detalle: det }))) return;
+      // ⚠️ El error trae `clave` (qué error fue) y `detalle` (el mensaje ya
+      // traducido, un STRING). La primera versión leía `e.detalle.detalle`,
+      // como si `detalle` fuera un objeto: nunca encontraba nada, así que el
+      // aviso de «este departamento tiene datos» —que es justo el que hay que
+      // leer antes de esconder— salía como JSON crudo en pantalla.
+      const err = e as { clave?: string; detalle?: string };
+      if (err.clave !== "provisionamiento.datos_cargados") {
+        setError(err.detalle || (e instanceof Error ? e.message : "Error"));
+        return;
+      }
+      if (!confirm(t("hideHasData", { detalle: err.detalle ?? "" }))) return;
       try { await saveProvisioningDepts(HOTEL_ID, fila, true); }
-      catch (e2: unknown) { setError(e2 instanceof Error ? e2.message : "Error"); return; }
+      catch (e2: unknown) {
+        const err2 = e2 as { detalle?: string };
+        setError(err2.detalle || (e2 instanceof Error ? e2.message : "Error"));
+        return;
+      }
     }
     await load(scenarioId);
     setGuardado(t("hidden", { dept: nombre }));
@@ -170,17 +203,20 @@ export default function BoardPage() {
   const SEC_LK = Object.fromEntries(STRUCT.map(g => [g.section, g.lk]));
   // Mientras el backend nuevo no este desplegado, `tablero` llega vacio y la
   // pantalla sigue andando con la lista de siempre.
+  const fila = (it: Record<string, unknown>) => ({
+    ref: String(it.ref ?? ""),
+    label: it.label as string | undefined,
+    lk: (it.label_key ?? it.lk) as string | undefined,
+    datos: it.datos as number | undefined,
+    madre: it.madre as string | undefined,
+    dimension: it.dimension as string | undefined,
+  });
   const GRUPOS = (tablero ?? STRUCT).map(g => ({
     section: g.section,
     lk: SEC_LK[g.section] ?? g.section,
-    items: (g.items as Array<Record<string, unknown>>).map(it => ({
-      ref: String(it.ref ?? ""),
-      label: it.label as string | undefined,
-      lk: (it.label_key ?? it.lk) as string | undefined,
-      datos: it.datos as number | undefined,
-      madre: it.madre as string | undefined,
-      dimension: it.dimension as string | undefined,
-    })),
+    items: (g.items as Array<Record<string, unknown>>).map(fila),
+    escondidos: ((g as { escondidos?: Array<Record<string, unknown>> })
+      .escondidos ?? []).map(fila),
   }));
 
   const valsFor = (section: string) => vals.filter(v => v.section === section && v.level !== "ok");
@@ -278,6 +314,23 @@ export default function BoardPage() {
                           <div key={i} style={{ fontSize: 12, color: vColor(v.level), marginBottom: 2 }}>
                             {v.level === "error" ? "⛔" : "⚠"} {v.message}
                           </div>
+                        ))}
+                      </div>
+                    )}
+                    {isAdmin && g.escondidos.length > 0 && (
+                      <div style={{ padding: "7px 14px 7px 30px",
+                                    borderTop: "1px solid var(--border-medium)",
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    flexWrap: "wrap", background: "var(--bg-surface)" }}>
+                        <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                          {t("hiddenHere", { n: g.escondidos.length })}
+                        </span>
+                        {g.escondidos.map(h => (
+                          <button key={h.ref} style={{ ...sbtn, fontSize: 10 }}
+                                  title={t("showTitle")}
+                                  onClick={() => mostrar(h)}>
+                            {lbl(h)} ↺
+                          </button>
                         ))}
                       </div>
                     )}

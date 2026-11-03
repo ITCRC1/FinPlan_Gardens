@@ -137,10 +137,10 @@ async def tablero_del_escenario(db: AsyncSession, scenario: Scenario) -> list[di
     salida = [{"section": "master", "items": [{"ref": "", "label_key": "sec.general"}]}]
     for seccion, dim in SECCION_DIM.items():
         con_reglas = por_clase.get(SECCION_CLASE[seccion], set())
-        items = []
+        items, escondidos = [], []
         for d in catalogo:
             codigo = (d.dept_code or "").strip()
-            if not codigo or codigo not in con_reglas or codigo in apagados[dim]:
+            if not codigo or codigo not in con_reglas:
                 continue
             if dim == "REVENUE" and not d.is_revenue_dept:
                 continue
@@ -152,8 +152,13 @@ async def tablero_del_escenario(db: AsyncSession, scenario: Scenario) -> list[di
             }
             if dim in CON_CONTEO:
                 item["datos"] = int(conteos.get(codigo, {}).get(dim, 0))
-            items.append(item)
-        salida.append({"section": seccion, "items": items})
+            # Los apagados viajan APARTE, no se omiten. Esconder sin forma de
+            # volver atrás desde el mismo lugar deja al usuario buscando el
+            # departamento entre las 23 filas del provisionamiento, y el que
+            # escondió de más no sabe ni cuál fue.
+            (escondidos if codigo in apagados[dim] else items).append(item)
+        salida.append({"section": seccion, "items": items,
+                       "escondidos": escondidos})
     salida.append({"section": "nonop",
                    "items": [{"ref": r, "label_key": f"nonop.{r}"} for r in NONOP_REFS]})
     return salida

@@ -137,7 +137,13 @@ export interface TableroItem {
   madre?: string;
   dimension?: string;
 }
-export interface TableroGrupo { section: string; items: TableroItem[] }
+export interface TableroGrupo {
+  section: string;
+  items: TableroItem[];
+  /** Los apagados para esta sección. Viajan aparte para poder
+   *  volver a prenderlos desde el mismo tablero. */
+  escondidos?: TableroItem[];
+}
 
 export async function getAssignments(scenarioId: string): Promise<{
   scenario_id: string; sections: SectionRow[]; assignments: AssignmentRow[];

@@ -2215,9 +2215,12 @@
     "hide": "Hide",
     "hideTitle": "Hides this department from this section, here and in its checkbook. Turn it back on in Master Data → Provisioning.",
     "hideConfirm": "Hide “{dept}” from this section?\n\nIt also stops showing in its checkbook. You can turn it back on in Master Data → Provisioning.",
-    "hideHasData": "This department HAS data loaded:\n\n{detalle}\n\nHiding it takes it off the screen but its money keeps adding up in the P&L. Hide it anyway?",
+    "hideHasData": "{detalle}\n\nHide it anyway?",
     "hidden": "“{dept}” hidden",
-    "noData": "no data"
+    "noData": "no data",
+    "hiddenHere": "Hidden in this section ({n}) — click to show again:",
+    "showTitle": "Shows it again here and in its checkbook.",
+    "shown": "“{dept}” visible again"
   },
   "mkt": {
     "subtitle": "{hotel} · Marketing analysis · ",

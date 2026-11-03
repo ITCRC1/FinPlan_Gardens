@@ -2215,9 +2215,12 @@
     "hide": "Esconder",
     "hideTitle": "Esconde este departamento de esta sección, acá y en su checkbook. Se vuelve a prender en Master Data → Provisionamiento.",
     "hideConfirm": "¿Esconder «{dept}» de esta sección?\n\nTambién deja de aparecer en su checkbook. Se puede volver a prender en Master Data → Provisionamiento.",
-    "hideHasData": "Este departamento TIENE datos cargados:\n\n{detalle}\n\nEsconderlo lo saca de la pantalla pero su plata sigue sumando en el P&L. ¿Esconderlo igual?",
+    "hideHasData": "{detalle}\n\n¿Esconderlo de todas formas?",
     "hidden": "«{dept}» escondido",
-    "noData": "sin datos"
+    "noData": "sin datos",
+    "hiddenHere": "Escondidos en esta sección ({n}) — clic para volver a mostrar:",
+    "showTitle": "Vuelve a mostrarlo acá y en su checkbook.",
+    "shown": "«{dept}» visible de nuevo"
   },
   "mkt": {
     "subtitle": "{hotel} · Análisis de marketing · ",
