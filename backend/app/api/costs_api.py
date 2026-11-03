@@ -36,6 +36,10 @@ from app.api._allocated import lineas_del_allocation
 
 router = APIRouter(tags=["costs"])
 
+#: Las 12 columnas de mes, en el orden del checkbook.
+_MESES_COL = ["jan", "feb", "mar", "apr", "may", "jun",
+              "jul", "aug", "sep", "oct", "nov", "dec"]
+
 MONTH_ATTRS = ["jan", "feb", "mar", "apr", "may", "jun",
                "jul", "aug", "sep", "oct", "nov", "dec"]
 
@@ -358,6 +362,118 @@ async def costs_report(scenario_id: str, db: AsyncSession = Depends(get_db)):
                       "annual": round(sum(a["annual"] for a in accounts), 2),
                       "accounts": accounts})
     return {"scenario_id": scenario_id, "depts": depts}
+
+
+def depts_del_resumen(candidatos, padres: dict[str, str]) -> list[str]:
+    """Qué departamentos se listan, sin contar a nadie dos veces.
+
+    El checkbook trabaja al nivel del PADRE (0120 A&B) y el reparto cae en los
+    HIJOS (0122 Cocina, 0123 Restaurante). `lineas_del_allocation` ya recoge a
+    los hijos cuando se le pide el padre, así que listar también al hijo
+    sumaría su plata dos veces en el total — y el resumen contradiría al P&L
+    por el doble de lo repartido, que es el tipo de descuadre que hace dudar
+    del reporte entero.
+
+    Un hijo sólo aparece si su padre NO está en la lista: ahí nadie lo
+    recoge, y esconderlo sería peor que duplicarlo.
+    """
+    candidatos = set(candidatos)
+    return sorted(d for d in candidatos if padres.get(d, "") not in candidatos)
+
+
+@router.get("/costs/{scenario_id}/summary/")
+async def costs_summary(scenario_id: str, db: AsyncSession = Depends(get_db)):
+    """Todos los departamentos, mes a mes: el panorama completo del costo.
+
+    **Por qué existe** (owner, 2026-11-03, sobre la pantalla de Cost of Sales):
+    *«puedes darme abajo el resumen del costo, arriba el que estoy cambiando y
+    abajo resumen de todos los costos»*. Editando un departamento no se ve en
+    qué queda el conjunto, y el total del año sólo aparecía abriendo los nueve
+    checkbooks uno por uno y sumando a mano.
+
+    Devuelve DOS corrientes por departamento, separadas, porque son cosas
+    distintas y mezclarlas esconde de dónde sale la plata:
+
+        propio     las líneas del checkbook — lo que alguien digitó o derivó
+                   de un driver, y lo único que se edita
+        repartido  lo que le cae por allocation desde cafetería (0220) o
+                   lavandería (0161) — nadie lo digita y nadie lo edita
+
+    El P&L suma las dos. La pantalla por departamento también. Si acá se
+    mostrara sólo `propio`, el resumen no cuadraría contra el P&L y la primera
+    reacción sería dudar del P&L.
+
+    ⚠️ El reparto se pide con `lineas_del_allocation`, la MISMA función que usa
+    el checkbook de un departamento. Reimplementar la suma acá crearía una
+    segunda verdad que hay que mantener sincronizada a mano, y el día que
+    discrepen nadie sabría cuál creer.
+
+    ⚠️ Los departamentos padre (0120 A&B) ya incluyen a sus hijos (0122 Cocina,
+    0123 Restaurante), porque el reparto cae en los hijos y esa función los
+    recoge. Por eso un hijo cuyo padre está en la lista NO se lista aparte:
+    saldría dos veces en el total.
+    """
+    await _get_scenario_or_404(scenario_id, db)
+    from app.api._allocated import _padres
+    from app.api.payroll_api import _esconder_apagados
+    from app.models.allocation_entry import AllocationEntry
+
+    entries = (await db.execute(
+        select(CostEntry).where(CostEntry.scenario_id == scenario_id)
+    )).scalars().all()
+
+    # Candidatos: los que tienen checkbook y los que sólo reciben reparto.
+    # Sin los segundos el resumen no cuadra contra el P&L — es el caso del
+    # 0162, que no enseñaba nada aunque carga costo de venta.
+    candidatos = {e.dept_code for e in entries}
+    candidatos |= {
+        d for d in (await db.execute(
+            select(AllocationEntry.target_dept).where(
+                AllocationEntry.scenario_id == scenario_id).distinct()
+        )).scalars().all() if d
+    }
+    depts = depts_del_resumen(candidatos, await _padres(db))
+
+    visibles = {r["dept_code"] for r in await _esconder_apagados(
+        db, scenario_id, "COST", [{"dept_code": d} for d in depts])}
+
+    filas = []
+    for dept in depts:
+        if dept not in visibles:
+            continue
+        propio = [Decimal("0")] * 12
+        for e in entries:
+            if e.dept_code != dept:
+                continue
+            for m in range(1, 13):
+                propio[m - 1] += e.get_month(m)
+        repartido = [Decimal("0")] * 12
+        for linea in await lineas_del_allocation(db, scenario_id, dept, "5"):
+            for i, mes in enumerate(_MESES_COL):
+                repartido[i] += Decimal(str(linea.get(mes) or "0"))
+        if all(p == 0 for p in propio) and all(r == 0 for r in repartido):
+            continue   # un departamento en cero no es información
+        filas.append({
+            "dept_code": dept,
+            "propio": [str(v) for v in propio],
+            "repartido": [str(v) for v in repartido],
+            "total": [str(propio[i] + repartido[i]) for i in range(12)],
+            "propio_anual": str(sum(propio)),
+            "repartido_anual": str(sum(repartido)),
+            "anual": str(sum(propio) + sum(repartido)),
+            # 0220 reparte su costo de venta: lo que se ve acá es el SOBRANTE
+            # que no se repartió, y en el P&L cae en overhead. Se marca para
+            # que nadie lo lea como un costo operativo más.
+            "reparte": dept in ALLOC_EXCL_COST,
+        })
+
+    tot = [sum(Decimal(f["total"][i]) for f in filas) for i in range(12)]
+    return {
+        "scenario_id": scenario_id,
+        "depts": filas,
+        "total": [str(v) for v in tot],
+        "anual": str(sum(tot)),
+    }
 
 
 @router.get("/costs/{scenario_id}/dept/{dept_code}/summary/")

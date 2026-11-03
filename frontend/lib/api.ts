@@ -1623,6 +1623,32 @@ export async function getCostSummary(
   return r.monthly;
 }
 
+/** Una fila del resumen de TODOS los departamentos (abajo del checkbook). */
+export interface CostDeptRollup {
+  dept_code: string;
+  /** Lo digitado o derivado de un driver: las líneas del checkbook. */
+  propio: string[];
+  /** Lo que le cae por allocation desde cafetería o lavandería. No se edita. */
+  repartido: string[];
+  /** `propio + repartido`, que es lo que suma el P&L. */
+  total: string[];
+  propio_anual: string;
+  repartido_anual: string;
+  anual: string;
+  /** El departamento REPARTE su costo (0220): lo que se ve es el sobrante. */
+  reparte: boolean;
+}
+
+export interface CostRollup {
+  depts: CostDeptRollup[];
+  total: string[];
+  anual: string;
+}
+
+export async function getCostRollup(scenarioId: string): Promise<CostRollup> {
+  return api.get<CostRollup>(`/costs/${scenarioId}/summary/`);
+}
+
 export interface CostCatalogItem {
   dept_code: string; line_name: string; account_code: string; name: string;
 }

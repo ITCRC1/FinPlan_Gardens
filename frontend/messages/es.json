@@ -666,7 +666,15 @@
     "uploading": "Subiendo...",
     "withoutAllocation": "sin el reparto",
     "xlsImported": "✓ Excel importado: {n} líneas",
-    "referenceTotal": "ingreso total del hotel"
+    "referenceTotal": "ingreso total del hotel",
+    "rollupTitle": "Resumen de todos los costos",
+    "rollupHint": "el escenario completo, como lo toma el P&L · clic en una fila para abrirla arriba",
+    "deptCol": "Departamento",
+    "rollupTotal": "TOTAL COSTO DE VENTAS",
+    "ownLine": "propio",
+    "allocLine": "repartido",
+    "repartes": "reparte",
+    "repartesHint": "Este departamento reparte su costo a los demás: lo que se ve acá es el sobrante que no se repartió, y en el P&L cae en overhead."
   },
   "control": {
     "activeRules": "Reglas activas:",

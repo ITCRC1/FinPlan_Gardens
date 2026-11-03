@@ -666,7 +666,15 @@
     "uploading": "Uploading...",
     "withoutAllocation": "without the allocation",
     "xlsImported": "✓ Excel imported: {n} lines",
-    "referenceTotal": "hotel total revenue"
+    "referenceTotal": "hotel total revenue",
+    "rollupTitle": "All cost of sales",
+    "rollupHint": "the whole scenario, as the P&L takes it · click a row to open it above",
+    "deptCol": "Department",
+    "rollupTotal": "TOTAL COST OF SALES",
+    "ownLine": "own",
+    "allocLine": "allocated",
+    "repartes": "allocates",
+    "repartesHint": "This department allocates its cost to the others: what you see here is the leftover that was not allocated, and it lands in overhead in the P&L."
   },
   "control": {
     "activeRules": "Active rules:",

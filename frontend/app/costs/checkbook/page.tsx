@@ -8,12 +8,13 @@ import { useTranslations } from "next-intl";
 import AvisoMoneda from "@/components/AvisoMoneda";
 import AvisoLineasObligatorias from "@/components/AvisoLineasObligatorias";
 import RecalcButton from "@/components/RecalcButton";
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   getScenarios, getCostDepts, getCostDeptCheckbook, getCostSummary,
   updateCostEntry, recalculateCosts, costsExcelUrl, importCostsExcel,
-  createCostEntry, deleteCostEntry, getCostCatalog,
+  createCostEntry, deleteCostEntry, getCostCatalog, getCostRollup,
   type Scenario, type CostEntry, type CostDeptCheckbook, type CostMonthlySummary,
+  type CostRollup,
   type CalcMode, type DriverType, type RevenueLine, type CostCatalogItem,
   sembrarCuentas,
 } from "@/lib/api";
@@ -134,6 +135,7 @@ export default function CostsCheckbookPage() {
   const [selectedDept, setSelected]       = useState<string | null>(null);
   const [checkbook, setCheckbook]         = useState<CostDeptCheckbook | null>(null);
   const [summary, setSummary]             = useState<CostMonthlySummary[]>([]);
+  const [rollup, setRollup]               = useState<CostRollup | null>(null);
   const [loading, setLoading]             = useState(true);
   const [deptLoading, setDeptLoading]     = useState(false);
   const [saving, setSaving]               = useState<string | null>(null);  // entry id being saved
@@ -202,12 +204,14 @@ export default function CostsCheckbookPage() {
     if (!scenarioId) return;
     setDeptLoading(true);
     try {
-      const [cb, sum] = await Promise.all([
+      const [cb, sum, roll] = await Promise.all([
         getCostDeptCheckbook(scenarioId, deptCode),
         getCostSummary(scenarioId, deptCode),
+        getCostRollup(scenarioId).catch(() => null),
       ]);
       setCheckbook(cb);
       setSummary(sum);
+      setRollup(roll);
     } finally {
       setDeptLoading(false);
     }
@@ -830,6 +834,129 @@ export default function CostsCheckbookPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ── Resumen de TODOS los departamentos ──────────────────────────
+          Owner, 2026-11-03: «arriba el que estoy cambiando y abajo resumen de
+          todos los costos». Editando uno no se veia en que quedaba el
+          conjunto, y el total del ano salia abriendo los nueve checkbooks a
+          mano.
+
+          Se muestran DOS corrientes por departamento porque el P&L suma las
+          dos y son cosas distintas: `propio` es lo que alguien digito o
+          derivo de un driver —lo unico editable— y `repartido` es lo que cae
+          por allocation desde cafeteria o lavanderia. Ensenar solo la primera
+          dejaria el resumen descuadrado contra el P&L. */}
+      {!loading && !error && rollup && rollup.depts.length > 0 && (
+        <div style={{ marginTop: 28 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10,
+                        marginBottom: 8 }}>
+            <h2 style={{ margin: 0, fontSize: 15, color: "var(--text-primary)" }}>
+              {t("rollupTitle")}
+            </h2>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              {t("rollupHint")}
+            </span>
+          </div>
+          <div className="fin-scroll-x" style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "var(--bg-header)",
+                             color: "var(--text-secondary)" }}>
+                  <th style={{ textAlign: "left", padding: "6px 8px" }}>
+                    {t("deptCol")}
+                  </th>
+                  {MONTHS.map(m => (
+                    <th key={m} style={{ textAlign: "right", padding: "6px 8px" }}>{m}</th>
+                  ))}
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>{tc("annual")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rollup.depts.map(d => {
+                  const esElAbierto = d.dept_code === selectedDept;
+                  const tieneReparto = d.repartido.some(v => parseFloat(v) !== 0);
+                  return (
+                    <React.Fragment key={d.dept_code}>
+                      <tr
+                        onClick={() => setSelected(d.dept_code)}
+                        style={{
+                          cursor: "pointer",
+                          // El que se esta editando arriba, marcado: es la
+                          // pregunta que uno se hace al mirar el cuadro.
+                          background: esElAbierto ? "var(--bg-elevated)" : "transparent",
+                          borderLeft: esElAbierto
+                            ? "2px solid var(--brand)" : "2px solid transparent",
+                          borderTop: "1px solid var(--border-subtle)",
+                        }}
+                      >
+                        <td style={{ padding: "5px 8px",
+                                     color: esElAbierto ? "var(--text-primary)"
+                                                        : "var(--text-secondary)" }}>
+                          {d.dept_code} — {deptName(d.dept_code)}
+                          {d.reparte && (
+                            <span title={t("repartesHint")}
+                                  style={{ marginLeft: 6, fontSize: 10,
+                                           color: "var(--warning)" }}>
+                              {t("repartes")}
+                            </span>
+                          )}
+                        </td>
+                        {d.total.map((v, i) => (
+                          <td key={i} className="amount"
+                              style={{ textAlign: "right", padding: "5px 8px",
+                                       color: "var(--text-primary)" }}>
+                            {fmtUsd(v)}
+                          </td>
+                        ))}
+                        <td className="amount"
+                            style={{ textAlign: "right", padding: "5px 8px",
+                                     fontWeight: 600, color: "var(--text-primary)" }}>
+                          {fmtUsd(d.anual)}
+                        </td>
+                      </tr>
+                      {tieneReparto && (
+                        <tr style={{ color: "var(--text-disabled)", fontSize: 11 }}>
+                          <td style={{ padding: "2px 8px 5px 20px" }}>
+                            {t("ownLine")} / {t("allocLine")}
+                          </td>
+                          {d.propio.map((v, i) => (
+                            <td key={i} className="amount"
+                                style={{ textAlign: "right", padding: "2px 8px 5px" }}>
+                              {fmtUsd(v)} / {fmtUsd(d.repartido[i])}
+                            </td>
+                          ))}
+                          <td className="amount"
+                              style={{ textAlign: "right", padding: "2px 8px 5px" }}>
+                            {fmtUsd(d.propio_anual)} / {fmtUsd(d.repartido_anual)}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                <tr style={{ borderTop: "2px solid var(--border-medium)",
+                             background: "var(--bg-elevated)", fontWeight: 700 }}>
+                  <td style={{ padding: "7px 8px", color: "var(--text-primary)" }}>
+                    {t("rollupTotal")}
+                  </td>
+                  {rollup.total.map((v, i) => (
+                    <td key={i} className="amount"
+                        style={{ textAlign: "right", padding: "7px 8px",
+                                 color: "var(--text-primary)" }}>
+                      {fmtUsd(v)}
+                    </td>
+                  ))}
+                  <td className="amount"
+                      style={{ textAlign: "right", padding: "7px 8px",
+                               color: "var(--text-primary)" }}>
+                    {fmtUsd(rollup.anual)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
