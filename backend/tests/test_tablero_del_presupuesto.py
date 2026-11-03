@@ -32,7 +32,7 @@ import pathlib
 
 import pytest
 
-from app.api.collab_api import NONOP_REFS, SECCION_DIM
+from app.api.collab_api import NONOP_REFS, SECCION_CLASE, SECCION_DIM
 from app.models.section_assignment import SECTIONS
 
 RAIZ = pathlib.Path(__file__).resolve().parents[1]
@@ -55,18 +55,42 @@ def test_las_dimensiones_existen_en_provisionamiento():
     assert set(SECCION_DIM.values()) <= set(DIMS_DEPT)
 
 
-def test_el_ingreso_se_filtra_con_la_misma_regla_que_provisionamiento():
-    """`_aplica` ya decide dónde tiene sentido el ingreso (`is_revenue_dept`).
-    Una regla propia acá sería una segunda verdad: el tablero ofrecería
-    departamentos que el provisionamiento no deja ni configurar."""
+def test_cada_seccion_declara_la_clase_de_cuenta_que_la_define():
+    """Un departamento aparece en una sección si tiene reglas de mapeo de esa
+    clase. Es lo que baja Costos de venta de 38 departamentos a 17 — fuera
+    Administración, Ventas y Mantenimiento, dentro Information System, que sí
+    tiene costo de venta en las cuentas 5400-5404."""
+    assert SECCION_CLASE == {"revenue": "4", "costs": "5",
+                             "payroll": "6", "opex": "7"}
+    assert set(SECCION_CLASE) == set(SECCION_DIM)
+
+
+def test_los_tres_filtros_siguen_puestos():
+    """Los tres salen de verdad que ya estaba escrita en otro lado. Si uno se
+    cae, el tablero vuelve a pedir aprobar casillas que no existen — y no falla
+    nada, sólo aparecen filas de más."""
     import inspect
     from app.api import collab_api
     fuente = inspect.getsource(collab_api.tablero_del_escenario)
-    assert "_aplica" in fuente, "el tablero dejó de usar la regla compartida"
+    assert "_depts_por_clase" in fuente, "volvió a ofrecer todas las secciones"
+    assert "is_revenue_dept" in fuente, (
+        "las reglas 4xxx solas dejan entrar a Administración y Mantenimiento, "
+        "que tienen ingreso misceláneo pero no le venden a nadie")
     assert "depts_habilitados" in fuente, (
         "el tablero dejó de respetar lo que la propiedad apagó")
     assert "_conteos" in fuente, (
         "sin los conteos, esconder un departamento es a ciegas")
+
+
+def test_el_ingreso_no_miente_diciendo_sin_datos():
+    """`_conteos` sólo cubre planilla, OPEX y costos. Si Ingreso emitiera
+    `datos: 0`, sus 14 departamentos dirían «sin datos» y ese cero invitaría a
+    esconder justo lo que factura."""
+    import inspect
+    from app.api import collab_api
+    fuente = inspect.getsource(collab_api.tablero_del_escenario)
+    assert 'CON_CONTEO = {"PAYROLL", "OPEX", "COST"}' in fuente
+    assert "if dim in CON_CONTEO:" in fuente
 
 
 def test_los_rubros_de_abajo_del_gop_no_son_departamentos():

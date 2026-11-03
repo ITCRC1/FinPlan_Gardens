@@ -40,15 +40,49 @@ def _user_brief(u: User | None) -> dict | None:
 _STATUS_RANK = {"pending": 0, "in_progress": 1, "in_review": 2, "approved": 3}
 
 
-#: Qué dimensión de provisionamiento gobierna cada sección del tablero. Las
-#: que no están acá no se arman con departamentos: `master` es una sola fila y
-#: `nonop` son rubros de abajo-GOP, que no tienen depto.
+#: Qué dimensión de provisionamiento y qué CLASE DE CUENTA gobierna cada
+#: sección del tablero. Las que no están acá no se arman con departamentos:
+#: `master` es una sola fila y `nonop` son rubros de abajo-GOP, sin depto.
 SECCION_DIM = {"revenue": "REVENUE", "costs": "COST",
                "payroll": "PAYROLL", "opex": "OPEX"}
+SECCION_CLASE = {"revenue": "4", "costs": "5", "payroll": "6", "opex": "7"}
 
 #: Los rubros below-GOP del tablero. No salen del catálogo de departamentos
 #: porque no son departamentos; su rótulo lo pone la pantalla.
 NONOP_REFS = ["mgmt", "insurance", "capital", "financial", "depreciation"]
+
+
+async def _depts_por_clase(db: AsyncSession) -> dict[str, set[str]]:
+    """`{clase: departamentos que tienen reglas activas de esa clase}`.
+
+    Es la respuesta a «¿qué secciones le aplican a este departamento?» sacada
+    del mapeo de cuentas, que es donde el proyecto ya decidió qué cuenta
+    pertenece a qué departamento.
+
+    Medido contra producción, le quita al tablero el ruido que lo hacía
+    inservible: **Costos de venta pasa de 38 departamentos a 17**. Quedan fuera
+    Administración, Ventas, Mantenimiento, Front Desk y Housekeeping —la regla
+    del proyecto es «cuentas 5xxx nunca en Rooms, Admin, Sales, Maintenance»— y
+    queda DENTRO Information System, que sí tiene costo de venta real en las
+    cuentas 5400-5404 de telecomunicaciones.
+
+    Ese último caso es la razón de leer el mapeo en vez de escribir la regla a
+    mano: la versión «el costo de venta no aplica al overhead» es más simple,
+    suena bien, y habría escondido los $350 que IT tiene cargados.
+    """
+    from app.models.mapping import AccountMapping
+
+    salida: dict[str, set[str]] = {}
+    filas = (await db.execute(
+        select(AccountMapping.account_code, AccountMapping.dept_code)
+        .where(AccountMapping.active_status == "YES")
+    )).all()
+    for cuenta, dept in filas:
+        dept = (dept or "").strip()
+        if not dept or not cuenta:
+            continue
+        salida.setdefault(str(cuenta)[:1], set()).add(dept)
+    return salida
 
 
 async def tablero_del_escenario(db: AsyncSession, scenario: Scenario) -> list[dict]:
@@ -59,30 +93,33 @@ async def tablero_del_escenario(db: AsyncSession, scenario: Scenario) -> list[di
     *«planilla es extensa, opex es extensa»*.
 
     Antes la pantalla armaba esta lista sola, con una copia del catálogo de
-    departamentos escrita en el navegador (`CWL_DEPTS`). Eso tenía dos
-    consecuencias: mostraba los 37 departamentos en TODAS las secciones —Ingreso
-    en Mantenimiento, costo de venta en Administración— y no se enteraba de lo
-    que la propiedad había apagado en provisionamiento. El tablero pedía aprobar
-    126 casillas de las cuales muchas no existen para este hotel.
+    departamentos escrita en el navegador (`CWL_DEPTS`). Mostraba los 37
+    departamentos en TODAS las secciones —Ingreso en Mantenimiento, costo de
+    venta en Administración— y no se enteraba de lo que la propiedad había
+    apagado en provisionamiento: 126 casillas, muchas inexistentes.
 
-    Ahora sale de donde ya vive la verdad, y por eso no hay que mantener una
-    segunda lista:
+    Tres filtros, los tres sobre verdad que ya estaba escrita en otro lado:
 
-    · `is_revenue_dept` dice quién factura. Ingreso sólo se ofrece ahí —es la
-      misma regla que usa el provisionamiento (`_aplica`), no una copia.
-    · `depts_habilitados` es el interruptor que el owner ya usa para apagar un
-      departamento en una dimensión. El tablero lo respeta, así que esconder
-      algo acá y esconderlo en el checkbook son **el mismo acto**, no dos.
-    · `_conteos` dice cuántas líneas hay detrás de cada (depto, dimensión). Va
-      en cada fila como `datos` para que apagar sea una decisión informada y no
-      a ciegas.
+    · **La clase de cuenta** (`_depts_por_clase`): un departamento aparece en
+      una sección si tiene reglas de mapeo de esa clase. Costos de venta baja
+      de 38 a 17.
+    · **`is_revenue_dept`**, y sólo para Ingreso, cruzado con lo anterior. Las
+      reglas 4xxx solas dejan entrar a Administración y Mantenimiento, que
+      tienen cuentas de ingreso misceláneo (intereses, varios) pero no le
+      venden a nadie. El cruce deja 14 departamentos, que son los que facturan.
+    · **`depts_habilitados`**: el interruptor que el owner ya usa para apagar
+      un departamento. Esconder acá y esconder en el checkbook son el mismo
+      acto, no dos.
 
-    Cada fila trae además `madre`: el provisionamiento trabaja por paquete y
-    rechaza un hijo suelto, así que la pantalla necesita saber a quién mandarle
-    el apagado.
+    Cada fila trae `madre` —el provisionamiento trabaja por paquete y rechaza
+    un hijo suelto— y, donde se sabe, `datos`: cuántas líneas hay cargadas
+    detrás, para que apagar sea informado.
+
+    ⚠️ `datos` se omite en Ingreso a propósito. `_conteos` sólo cubre planilla,
+    OPEX y costos; poner cero ahí haría que los 14 departamentos de ingreso
+    dijeran «sin datos» y el cero invitaría a esconder justo lo que factura.
     """
-    from app.api.provisioning_api import (DIMS_DEPT, _aplica, _conteos,
-                                          depts_habilitados)
+    from app.api.provisioning_api import DIMS_DEPT, _conteos, depts_habilitados
     from app.models.department_catalog import DepartmentCatalog
 
     catalogo = [d for d in (await db.execute(
@@ -90,24 +127,32 @@ async def tablero_del_escenario(db: AsyncSession, scenario: Scenario) -> list[di
             DepartmentCatalog.display_order, DepartmentCatalog.dept_code)
     )).scalars().all() if d.active]
 
+    por_clase = await _depts_por_clase(db)
     conteos = await _conteos(db, scenario.hotel_id)
     apagados = {dim: (await depts_habilitados(db, scenario.hotel_id, dim) or set())
                 for dim in DIMS_DEPT}
+    #: `_conteos` sólo sabe de estas tres; ver la advertencia del docstring.
+    CON_CONTEO = {"PAYROLL", "OPEX", "COST"}
 
     salida = [{"section": "master", "items": [{"ref": "", "label_key": "sec.general"}]}]
     for seccion, dim in SECCION_DIM.items():
+        con_reglas = por_clase.get(SECCION_CLASE[seccion], set())
         items = []
         for d in catalogo:
             codigo = (d.dept_code or "").strip()
-            if not codigo or not _aplica(d, dim) or codigo in apagados[dim]:
+            if not codigo or codigo not in con_reglas or codigo in apagados[dim]:
                 continue
-            items.append({
+            if dim == "REVENUE" and not d.is_revenue_dept:
+                continue
+            item = {
                 "ref": codigo,
                 "label": d.dept_name or codigo,
-                "datos": int(conteos.get(codigo, {}).get(dim, 0)),
                 "madre": (d.parent_dept_code or "").strip() or codigo,
                 "dimension": dim,
-            })
+            }
+            if dim in CON_CONTEO:
+                item["datos"] = int(conteos.get(codigo, {}).get(dim, 0))
+            items.append(item)
         salida.append({"section": seccion, "items": items})
     salida.append({"section": "nonop",
                    "items": [{"ref": r, "label_key": f"nonop.{r}"} for r in NONOP_REFS]})
