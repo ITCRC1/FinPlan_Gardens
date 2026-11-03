@@ -216,7 +216,8 @@
     "REV_SABOR_OJOCHAL",
     "REV_RENTAL_3",
     "REV_AREC",
-    "REV_RENTAL_1"
+    "REV_RENTAL_1",
+    "REV_RENT"
    ],
    "operandos": [],
    "formula_nota": "",
@@ -415,7 +416,9 @@
     "OPEX_SABOR_OJOCHAL",
     "COS_SABOR_OJOCHAL",
     "OPEX_RENTAL_3",
-    "COS_RENTAL_3"
+    "COS_RENTAL_3",
+    "COS_RENT",
+    "OPEX_RENT"
    ],
    "operandos": [],
    "formula_nota": "",
@@ -1652,6 +1655,24 @@
    "linea_pl": "DEPRECIATION",
    "report_code": "DEPRECIATION",
    "nota": "ALTA"
+  },
+  {
+   "report_key": "owners_q",
+   "linea_pl": "REV_RENT",
+   "report_code": "REV_OOD_TOTAL",
+   "nota": "ALTA · alquiler de locales (2026-11-02). Va donde van sus hermanos de Other Operated: sin fila, el gate de cobertura deja Owners Q fallando."
+  },
+  {
+   "report_key": "owners_q",
+   "linea_pl": "COS_RENT",
+   "report_code": "EXP_OOD",
+   "nota": "ALTA · alquiler de locales (2026-11-02). Va donde van sus hermanos de Other Operated: sin fila, el gate de cobertura deja Owners Q fallando."
+  },
+  {
+   "report_key": "owners_q",
+   "linea_pl": "OPEX_RENT",
+   "report_code": "EXP_OOD",
+   "nota": "ALTA · alquiler de locales (2026-11-02). Va donde van sus hermanos de Other Operated: sin fila, el gate de cobertura deja Owners Q fallando."
   }
  ]
 }

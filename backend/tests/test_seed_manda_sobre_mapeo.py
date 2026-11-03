@@ -229,3 +229,92 @@ def test_el_nombre_del_0181_dice_lo_mismo_en_los_dos_lados(reglas):
     nombres = {r["source_department"] for r in _por_dept(reglas, "0181")
                if r["account_code"] not in CUENTAS_DEL_COMEDOR}
     assert nombres == {"Gerencia (Management)"}, nombres
+
+
+# ── El 0155 es alquiler, no un restaurante (migración 149) ───────────────────
+#
+# Owner, 2026-11-02: «no hay restaurantes en ojochal» · «es alquiler de locales
+# restaurantes solamente».
+#
+# El departamento venía del linaje de clones modelado como un restaurante
+# entero —ingreso, costo de venta, planilla y opex— y su ingreso caía en
+# `REV_SABOR_OJOCHAL`, que el consolidado rotula «Restaurantes externos». La
+# pista de que algo no cerraba estuvo siempre a la vista: en ningún escenario
+# el 0155 tuvo un colón de costo, planilla ni opex. Sólo ingreso, que es justo
+# lo que se ve cuando lo único que pasa es que se cobra una renta.
+#
+# Nadie lo notó porque **el total del P&L siempre cuadró**. Lo único torcido era
+# en qué renglón caía, y que la misma cosa quedaba partida en dos: la renta de
+# 2025-2026 en «Sabor Ojochal» y la de 2027 en «Rent».
+
+CUENTAS_DE_RENTA_DEL_0155 = {"4500", "4501", "4502"}
+
+
+def _ingresos_del_0155(reglas):
+    return [r for r in _por_dept(reglas, "0155")
+            if (r.get("source_origin") or "").lower() == "revenue"]
+
+
+def test_la_renta_del_0155_suma_en_rent(reglas):
+    """Las tres cuentas de ingreso del 0155 van a `REV_RENT`, el mismo renglón
+    de los contratos del módulo de alquileres (depto 0157). Si se separan, el
+    consolidado deja de poder comparar la renta año contra año: 2025 y 2026 en
+    un renglón y 2027 en otro."""
+    destinos = {r["account_code"]: r["report_line_code"]
+                for r in _ingresos_del_0155(reglas)}
+    assert set(destinos) == CUENTAS_DE_RENTA_DEL_0155, destinos
+    fuera = {a: l for a, l in destinos.items() if l != "REV_RENT"}
+    assert not fuera, f"el ingreso del 0155 volvió a salirse de Rent: {fuera}"
+
+
+def test_ninguna_cuenta_de_ingreso_cae_en_el_renglon_del_restaurante(reglas):
+    """`REV_SABOR_OJOCHAL` queda sin reglas a propósito: no hay restaurante que
+    la alimente. Que vuelva a tener una significa que alguien le devolvió la
+    renta —o que se abrió un restaurante y entonces esto se conversa, no se
+    reactiva de callado."""
+    con_restaurante = [(r.get("dept_code"), r["account_code"]) for r in reglas
+                       if r["report_line_code"] == "REV_SABOR_OJOCHAL"]
+    assert not con_restaurante, (
+        f"volvieron a mapear ingreso a «Sabor Ojochal»: {con_restaurante}")
+
+
+def test_rent_es_una_linea_viva_del_reporte(lineas):
+    """El destino tiene que existir. Mapear a un `line_code` que no está en
+    `report_line_config` manda la plata a un renglón que nadie dibuja: el
+    total baja y no hay error."""
+    rent = lineas.get("REV_RENT")
+    assert rent and rent["active"], "REV_RENT no está o está apagada"
+    assert rent["section"] == "REVENUES", rent["section"]
+
+
+def test_la_149_no_escribe_el_mapeo():
+    """La 149 es un no-op A PROPÓSITO: el mapeo lo re-afirma el seed desde el
+    JSON, y una migración que lo escribiera quedaría de adorno en el próximo
+    deploy — el modo de falla caro de este proyecto, el de las 093/094/095.
+
+    El archivo se conserva porque producción quedó marcada en 149 y borrarlo
+    deja a Alembic sin poder ubicar la revisión."""
+    import pathlib
+
+    mig = (pathlib.Path(__file__).resolve().parents[1] / "alembic" / "versions"
+           / "149_la_renta_de_sabor_es_renta.py")
+    if not mig.exists():
+        pytest.skip("no está la migración 149")
+    texto = mig.read_text(encoding="utf-8")
+    assert "UPDATE account_mapping" not in texto.upper().replace("`", ""), (
+        "la 149 volvió a escribir account_mapping: el seed la revierte sola")
+    assert "REV_RENT" in texto, "la 149 perdió la explicación del cambio"
+
+
+def test_el_destino_de_la_renta_existe_como_linea(lineas, reglas):
+    """La trampa que costó el primer intento: el mapeo apuntaba a `REV_RENT` y
+    `report_line_config` no la tenía. El motor sólo emite las líneas que
+    existen, así que la plata entraba a `TOTAL_REVENUES` —`SUM(REV_*)` la toma
+    igual— y no se dibujaba en ninguna fila. Ninguna alerta: el total cuadraba.
+
+    Vale para TODO destino, no sólo para la renta."""
+    destinos = {r["report_line_code"] for r in reglas}
+    faltan = sorted(d for d in destinos if d not in lineas)
+    assert not faltan, (
+        f"hay reglas de mapeo que apuntan a renglones que no existen en "
+        f"report_line_config: {faltan}")

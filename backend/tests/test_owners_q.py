@@ -369,12 +369,18 @@ def test_el_catalogo_cubre_las_lineas_pl(catalogo):
     volvió a A&G. La fila 30 del reporte se conserva —el archivo de SCP se
     compara fila por fila contra el fixture— pero ya no tiene fuente: sale en
     cero y su plata viaja en `UND_AG`.
+
+    70 desde el 2026-11-02: entran `REV_RENT`, `COS_RENT` y `OPEX_RENT`, el
+    alquiler de locales. Venían sin ruteo desde que se creó el módulo, y el
+    gate de cobertura del seed las reportaba como huérfanas — lo que **deja el
+    endpoint de Owners Q fallando**. Van donde van sus hermanos de Other
+    Operated: el ingreso a `REV_OOD_TOTAL`, el costo y el gasto a `EXP_OOD`.
     """
     filas, ruteo = catalogo
     por_catalogo = {lp: f["report_code"] for f in filas for lp in (f["lineas_pl"] or [])}
     assert set(por_catalogo) == set(ruteo)
     assert por_catalogo == ruteo
-    assert len(ruteo) == 67
+    assert len(ruteo) == 70
 
 
 # ─── Versionado del mapeo (§8) ────────────────────────────────────────────────
