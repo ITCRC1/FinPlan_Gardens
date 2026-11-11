@@ -167,6 +167,10 @@ export const NAV: NavGroup[] = [
       { key: "ownerReport", href: "/reports/owner" },
       { key: "ownersQ", href: "/reports/owners-q" },
       { key: "opexCheckbook", href: "/reports/opex-checkbook" },
+      // Cuentas del mayor por mes + su conciliacion contra el P&L. Va AL FINAL
+      // de Reports: es el ultimo paso, el que revisa que todo lo de arriba
+      // cuadre. Port de CWL (2026-11-10).
+      { key: "glByMonth", href: "/reports/gl" },
     ],
   },
   {
