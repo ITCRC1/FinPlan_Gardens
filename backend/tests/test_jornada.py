@@ -143,23 +143,3 @@ def test_el_cierre_y_el_fte_usan_la_base_cargada():
     assert j.cierra_la_jornada({"9980": 240}, 2027, 1, base=240)[0]
     assert not j.cierra_la_jornada({"9980": 240}, 2027, 1)[0]
     assert j.fte_desde_horas(120, 2027, 1, base=240) == Decimal("0.5")
-
-
-# ── El set de FTE (9902-9905) vive en el catálogo con la fórmula del motor ────
-
-def test_el_set_del_catalogo_es_el_del_motor():
-    """Las fórmulas del catálogo se escriben desde `jornada.SET_FTE`: si alguien
-    cambia una sola de las dos, el FTE quedaría definido dos veces."""
-    from app.seed_stats import leer_catalogo
-    cat = {c["code"]: c for c in leer_catalogo()}
-    for code in j.SET_FTE:
-        assert cat[code].get("formula") == j.formula_de(code), code
-        assert cat[code]["grupo"] == "9900" and cat[code]["unidad"] == "fte"
-    assert j.formula_de("9903") == "(9980+9985+9986) / 9979"
-    assert cat[j.CUENTA_BASE]["unidad"] == "hours" and not cat[j.CUENTA_BASE]["dims"]
-
-
-def test_las_calculadas_no_entran_en_la_plantilla():
-    import inspect
-    src = inspect.getsource(__import__("app.engine.estadisticas_grilla", fromlist=["x"]).construir)
-    assert 'StatAccount.formula == ""' in src

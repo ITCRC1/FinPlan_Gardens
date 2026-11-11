@@ -1,0 +1,55 @@
+{
+ "_nota": [
+  "Que puesto de Integrity (nivel 3 de la 9980) corresponde a cada posicion de la planilla de FinPlan Ojochal Gardens.",
+  "Owner, 2026-11-10 (en CWL): «el FTE debe ser por position y las horas deben ser por position que viene de la contabilidad».",
+  "La planilla del Budget 2027 de Ojochal tiene 6 personas en 5 nombres de posicion, sin codigo propio; Integrity registra las horas por PUESTO, sumando a todas las personas del puesto.",
+  "La llave es depto + nombre de la posicion, sin mayusculas ni espacios de mas.",
+  "TODO esta en revisar: Ojochal todavia no tiene su catalogo de estadisticas de Integrity (stats_integrity_OJO.json). Los codigos son los del catalogo de puestos del grupo vistos en CWL; `puesto_nombre` da el nombre mientras no haya catalogo.",
+  "puesto vacio = no hay cuenta de horas en Integrity para esa posicion. revisar = propuesta de Claude, no confirmada por el owner.",
+  "Homologacion para revisar: Claude-Borradores/FinPlan_Garden/2026-11-10_Garden_homologacion_posiciones_Integrity_v1.xlsx"
+ ],
+ "hotel": "OJO",
+ "version": "2026-11-10",
+ "mapa": [
+  {
+   "depto": "0111",
+   "posicion": "Gerencia de operaciones",
+   "puesto": "595",
+   "puesto_nombre": "GERENTE DE OPERACIONES",
+   "revisar": true,
+   "nota": "595 Gerente de Operaciones, o 594 Director de Operaciones / 500 Gerente. Codigo y nombre del catalogo de puestos de Integrity del grupo (visto en el STATS de CWL, 9980 nivel 3). Confirmar con el STATS de Ojochal."
+  },
+  {
+   "depto": "0113",
+   "posicion": "Mucamo(a)",
+   "puesto": "508",
+   "puesto_nombre": "CAMARERA (O)",
+   "revisar": true,
+   "nota": "Codigo y nombre del catalogo de puestos de Integrity del grupo (visto en el STATS de CWL, 9980 nivel 3). Confirmar con el STATS de Ojochal."
+  },
+  {
+   "depto": "0113",
+   "posicion": "Supervisor de Mucamo(a)",
+   "puesto": "511",
+   "puesto_nombre": "SUPERVISOR(A) DE AMA DE LLAVES",
+   "revisar": true,
+   "nota": "Codigo y nombre del catalogo de puestos de Integrity del grupo (visto en el STATS de CWL, 9980 nivel 3). Confirmar con el STATS de Ojochal."
+  },
+  {
+   "depto": "0186",
+   "posicion": "Guarda de Seguridad",
+   "puesto": "575",
+   "puesto_nombre": "OFICIAL DE SEGURIDAD",
+   "revisar": true,
+   "nota": "Codigo y nombre del catalogo de puestos de Integrity del grupo (visto en el STATS de CWL, 9980 nivel 3). Confirmar con el STATS de Ojochal."
+  },
+  {
+   "depto": "0200",
+   "posicion": "Mantenimiento",
+   "puesto": "589",
+   "puesto_nombre": "TECNICO DE MANTENIMIENTO",
+   "revisar": true,
+   "nota": "589 Tecnico de Mantenimiento, o 583 Encargado de Mantenimiento si es el unico del depto. Codigo y nombre del catalogo de puestos de Integrity del grupo (visto en el STATS de CWL, 9980 nivel 3). Confirmar con el STATS de Ojochal."
+  }
+ ]
+}
