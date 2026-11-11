@@ -848,7 +848,8 @@ export interface CuentaEstadistica {
 }
 export interface CatalogoEstadisticas {
   cuentas: CuentaEstadistica[];
-  jornada: { horas_mes: number; horas_dia: number; dias_base: number;
+  /** Las horas del mes son días del mes × `horas_dia` (owner 2026-11-10). */
+  jornada: { horas_dia: number;
              cierran: string[]; por_encima: string[] };
 }
 export interface EstadisticasValores {
