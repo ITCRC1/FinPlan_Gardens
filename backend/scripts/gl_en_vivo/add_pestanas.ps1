@@ -1,5 +1,5 @@
 ﻿param([string]$Libro, [switch]$Refrescar, [string[]]$Solo = @())
-# Agrega Posiciones, Checkbook Planilla y Checkbook OPEX al libro en vivo (owner, 2026-11-11).
+# Agrega Posiciones, Checkbook Planilla, OPEX, Costos y Estadisticas al libro en vivo (owner, 2026-11-11).
 # Misma mecanica que add_queries.ps1: una consulta por pestana que lee tVersiones.
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -7,6 +7,7 @@ $defs = @(
   @{ q = "Posiciones";        hoja = "Posiciones";        tabla = "tPosiciones"; m = "posiciones.m"; d = "Posiciones por mes: FTE y costo, con nombre y salario" },
   @{ q = "CheckbookPlanilla"; hoja = "Checkbook Planilla"; tabla = "tPlanilla";   m = "planilla.m";   d = "Checkbook de planilla: posicion x concepto x mes" },
   @{ q = "CheckbookOpex";     hoja = "Checkbook OPEX";     tabla = "tOpex";       m = "opex.m";       d = "Checkbook de OPEX: depto x cuenta x detalle x mes (USD)" },
+  @{ q = "CheckbookCostos";   hoja = "Checkbook Costos";   tabla = "tCostos";     m = "costos.m";     d = "Checkbook de costo de ventas (clase 5): depto x cuenta x mes (USD)" },
   @{ q = "Estadisticas";      hoja = "Estadisticas Rooms"; tabla = "tEstadisticas"; m = "estadisticas.m"; d = "Estadisticas de habitaciones por mes: disponibles, ocupadas, ocupacion, ADR, RevPAR" }
 )
 if ($Solo.Count -gt 0) { $defs = @($defs | Where-Object { $Solo -contains $_.q }) }
