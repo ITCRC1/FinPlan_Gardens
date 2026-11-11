@@ -197,6 +197,9 @@ export const NAV: NavGroup[] = [
       // (owner, 2026-09-03). Mismo motivo que los checkbooks: quien no tiene
       // acceso a Planning igual necesita ver de qué está hecho el ingreso.
       { key: "monthEndRevenuePlan", href: "/month-end/revenue-plan" },
+      // El mayor de Integrity, guardado mes a mes: hallazgos, cambios contra
+      // la subida anterior y los asientos. Es la fuente de la clase 9 real.
+      { key: "auditoriaGl", href: "/month-end/auditoria" },
     ],
   },
   {

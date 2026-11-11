@@ -698,6 +698,21 @@ MENSAJES: dict[str, dict[str, str]] = {
     "archivo.no_encontrado": {
         "es": "Archivo no encontrado: {archivo}",
         "en": "File not found: {archivo}"},
+    "auditoria.archivo_vacio": {
+        "es": "El archivo llegó vacío",
+        "en": "The file came through empty"},
+    "auditoria.archivo_muy_grande": {
+        "es": "El archivo pesa más de 25 MB: no parece el detalle del mayor de un mes",
+        "en": "The file is over 25 MB: that does not look like one month of GL detail"},
+    "auditoria.no_se_pudo_leer": {
+        "es": "No se pudo leer el archivo como Excel: {detalle}",
+        "en": "The file could not be read as Excel: {detalle}"},
+    "auditoria.sin_lineas": {
+        "es": "El archivo no trae ninguna línea de asiento con cuenta de siete segmentos. ¿Es el Full Detail P&L o el Balance de Comprobación de Integrity?",
+        "en": "The file has no journal lines with a seven-segment account. Is it the Integrity Full Detail P&L or Trial Balance?"},
+    "mayor.mes_invalido": {
+        "es": "El mes tiene que estar entre 1 y 12.",
+        "en": "The month must be between 1 and 12."},
     "auditoria.falta_configurar_mapeo": {
         "es": "Falta configurar el mapeo de cuentas / líneas del reporte",
         "en": "The account mapping / report lines have not been configured yet"},

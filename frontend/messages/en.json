@@ -137,7 +137,8 @@
       "plDetailClub": "P&L Detail Club",
       "monthEndDetailFull": "P&L Detail Full (consolidated)",
       "monthEndCheckbooks": "Checkbooks (read-only)",
-      "monthEndRevenuePlan": "Revenue build-up (read-only)"
+      "monthEndRevenuePlan": "Revenue build-up (read-only)",
+      "auditoriaGl": "GL detail audit"
     },
     "groupsFull": {
       "financials": "Financial Statements",

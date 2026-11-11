@@ -142,3 +142,5 @@ from app.models.import_registro import ImportBatch, ImportFile, ESTADOS, MODOS
 # Guillermo Fase 1: configuración, latido, manifiesto y cola de excepciones.
 from app.models.guillermo import (
     GuillermoConfig, GuillermoHeartbeat, ExpectedReport, ImportException)
+# El mayor guardado (auditoría del mayor, clase 9 real). No entra a ningún total.
+from app.models.mayor_movimiento import MayorMovimiento, MayorMovimientoPrevio
