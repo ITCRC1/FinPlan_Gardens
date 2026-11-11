@@ -59,10 +59,6 @@ VERSIONES = [
 ]
 
 
-#: Las hojas que se suman al GL (2026-11-11), en el orden en que se ven.
-HOJAS_EXTRA = ("P&L", "Posiciones", "Planilla", "OPEX")
-
-
 def _titulo(ws, fila, texto, ancho=6):
     c = ws.cell(fila, 1, texto)
     c.font = Font(bold=True, size=13, color=TINTA)
@@ -87,14 +83,13 @@ def construir(salida: str) -> None:
     for col, ancho in zip("ABCDEF", (8, 30, 10, 14, 20, 16)):
         cfg.column_dimensions[col].width = ancho
 
-    _titulo(cfg, 1, "Ojochal Gardens · GL, P&L USALI, posiciones, planilla y OPEX — en vivo")
+    _titulo(cfg, 1, "Ojochal Gardens · Cuentas del mayor por mes — en vivo")
     _nota(cfg, 2,
           "Datos → Actualizar todo. Cada versión se baja de FinPlan con la llave de "
           "solo lectura. El ingreso viene NEGATIVO (es crédito): la suma de todas las "
-          "filas del GL es la utilidad cambiada de signo (en la hoja P&L el ingreso va "
-          "positivo, como en el reporte). Las seis hojas bajan las mismas versiones "
-          "de la tabla de abajo.   Ojo: cada versión es un P&L completo de doce "
-          "meses, así que el refresh tarda en proporción a cuántas pida esta tabla.")
+          "filas es la utilidad cambiada de signo.   Ojo: cada versión es un P&L "
+          "completo de doce meses, así que el refresh tarda en proporción a cuántas "
+          "pida esta tabla.")
 
     cfg["A4"] = "Direccion del sistema (BACKEND)"
     cfg["A4"].font = Font(bold=True)
@@ -169,15 +164,6 @@ def construir(salida: str) -> None:
     datos["A1"] = "Esta hoja la llena Power Query. Datos → Actualizar todo."
     datos["A1"].font = Font(size=10, color=GRIS)
     datos.column_dimensions["A"].width = 60
-
-    # Owner, 2026-11-11: «mete un P&L usali, posiciones y checkbook de gastos y
-    # planilla». Mismas versiones de la tabla de arriba; una consulta por hoja.
-    for hoja in HOJAS_EXTRA:
-        ws = wb.create_sheet(hoja)
-        ws.sheet_view.showGridLines = False
-        ws["A1"] = "Esta hoja la llena Power Query. Datos → Actualizar todo."
-        ws["A1"].font = Font(size=10, color=GRIS)
-        ws.column_dimensions["A"].width = 60
 
     wb.save(salida)
     print(f"libro escrito: {salida}  ·  {len(VERSIONES)} versiones")

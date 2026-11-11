@@ -62,12 +62,12 @@ def test_todo_router_de_datos_lleva_la_guarda_completa():
     # solo lectura `X-Api-Key` o una sesión normal. Verificado ruta por ruta,
     # no por su nombre.
     #
-    # `consolidado_detalle_router` entró el 2026-11-11 (owner: «mete un P&L
-    # usali, posiciones y checkbook de gastos y planilla» en el Excel en vivo).
-    # Sus dos rutas son GET con `Depends(lector_del_consolidado)`: lo exige
-    # `test_consolidado_detalle.py`, que cuenta las dos.
+    # `consolidado_planilla_router` entró el 2026-11-11 (owner: posiciones y
+    # checkbooks de planilla y OPEX en el Excel en vivo, igual que en Oxygen).
+    # Sus tres rutas son GET con `Depends(lector_del_consolidado)`: lo exige
+    # `test_consolidado_planilla.py`.
     permitidos = ("auth_router", "consolidado_router", "consolidado_rooms_router",
-                  "consolidado_detalle_router")
+                  "consolidado_planilla_router")
     for ln in sin_guarda:
         assert any(p in ln for p in permitidos), (
             f"router montado sin _guard y no está en la lista de públicos: {ln}")
