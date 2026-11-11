@@ -39,6 +39,7 @@ from app.api.cashflow_directo_api import router as cashflow_directo_router
 from app.api.rooms_sets_api import router as rooms_sets_router
 from app.api.consolidado_api import router as consolidado_router
 from app.api.consolidado_rooms_api import router as consolidado_rooms_router
+from app.api.consolidado_detalle_api import router as consolidado_detalle_router
 from app.api.integraciones_api import router as integraciones_router
 from app.api.origenes_api import router as origenes_router
 from app.api.gasto_por_clase_api import router as gasto_clase_router
@@ -191,6 +192,8 @@ app.include_router(rooms_sets_router, prefix="/api", dependencies=_guard)
 app.include_router(consolidado_router, prefix="/api")
 # Rooms para Hotel Consolidation: misma puerta que el consolidado (llave de solo lectura o sesion).
 app.include_router(consolidado_rooms_router, prefix="/api")
+# Posiciones, planilla y OPEX para el Excel en vivo: misma puerta, sin `_guard`.
+app.include_router(consolidado_detalle_router, prefix="/api")
 app.include_router(integraciones_router, prefix="/api", dependencies=_guard)
 app.include_router(origenes_router, prefix="/api", dependencies=_guard)
 app.include_router(gasto_clase_router, prefix="/api", dependencies=_guard)
