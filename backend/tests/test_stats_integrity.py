@@ -439,13 +439,18 @@ def catalogo_minimo(tmp_path, monkeypatch):
     si.leer_catalogo.cache_clear()
 
 
-def test_ojochal_todavia_no_tiene_catalogo_y_la_pestana_igual_contesta():
-    """Hasta que llegue el STATS de Integrity de Ojochal, la vista sale vacía y
-    lo que el mayor traiga de clase 9 va a «fuera de catálogo», no se tira."""
+def test_el_catalogo_de_ojochal_carga_y_sus_noches_son_sus_siete_tipos():
+    """2026-11-11: sale de `scripts/generar_stats_integrity.py` — lo del grupo
+    igual que CWL (el «STATS CWL 2027.xlsx» es el catálogo del grupo) y las
+    noches rehechas con los 7 tipos activos de Ojochal (N7 01-07)."""
     cat = si.leer_catalogo("OJO")
-    assert cat["cuentas"] == []
+    assert cat["hotel"] == "OJO" and len(cat["grupos"]) == 44
+    noches = [c for c in cat["cuentas"] if c["grupo"] == "9000"]
+    assert {c["clave"][-2:] for c in noches} == {"00", "01", "02", "03", "04", "05", "06", "07"}
+    assert all(c["estado_finplan"] == "CREAR EN INTEGRITY" for c in noches)
     vista = si.armar_vista(cat, si.agregar([(1, "9980-0113-508-013-015-01-00", 8, 0)]), [1])
-    assert vista["cuentas"] == [] and vista["fuera_de_catalogo"]
+    c = next(x for x in vista["cuentas"] if x["clave"] == "9980-0113-508-013-015-00")
+    assert c["meses"][0] == 8.0
 
 
 def test_el_catalogo_rechaza_claves_repetidas(catalogo_minimo, tmp_path):
