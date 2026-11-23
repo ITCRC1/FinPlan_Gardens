@@ -99,14 +99,76 @@ Se cherry-pickean del repo de CWL (`git fetch cwl main`, con el remote apuntando
 
 ---
 
-## 5. Port a Gardens (OJO), 2026-11-22
+## 5. Segunda tanda (mismo día): Contract Labour y editar posiciones
 
-- Los 8 commits entraron en orden. Conflictos solo en el #3: `payroll_api.py` (import de
-  `conceptos_por_depto_excel`, propio de Gardens) y `page.tsx` (botón «↓ Conceptos x depto»,
-  propio de Gardens). Se conservaron los dos y se agregó lo nuevo.
-- Migración renombrada a **`155_categoria_de_la_posicion.py`** (`revision = "155"`,
-  `down_revision = "154"`).
-- `DEFECTO_POR_DEPTO` quedó igual que en CWL.
-- Tests: `test_planilla_categoria.py` 20/20 (hace falta `aiosqlite` instalado; sin él 12 se
-  saltan). `pytest -k "payroll or planilla or excel"`: 357 → 379 passed, 0 fallas, igual que
-  `origin/main` antes del port. Suite completa: 4936 → 4960 passed, 0 fallas en las dos. `npx tsc --noEmit -p .` limpio.
+Van **después** de los 8 de arriba, en este orden:
+
+| # | Commit | Qué hace |
+|---|---|---|
+| 9 | `2003d7c` | **Cuenta 6031 Contract Labour.** Se marca por posición con un check (`payroll_positions.contract_labour`): al crear la posición, como «CL» en la vista por posición y en la columna **X** del Excel. La posición marcada manda salario × FTE (÷ TC) a 6031 y queda **fuera de todo**: ni BASE, ni CCSS, ni aguinaldo, ni vacaciones, ni INS, ni beneficios. En el P&L va con los salarios (6000) del mismo depto. Migración **166** |
+| 10 | `58189f2` | **Editar una posición ya creada**: botón ✎ con depto (se muda con sus conceptos), código (sin repetir), puesto, colaborador, tipo, salario, moneda, Categoria/SubCategoria, Contract Labour y los 12 FTE. El salario también se edita directo en la fila, y la **moneda (col H)** queda editable en el Excel |
+
+**Lo que hay que adaptar:**
+
+1. **Migración `166_contract_labour.py`.** Renumerarla al número que siga a la migración del port anterior en cada hotel:
+
+   | Hotel | Revisión | Revises |
+   |---|---|---|
+   | AMA | 157 | 156 |
+   | OXY | 154 | 153 |
+   | Gardens | 156 | 155 |
+
+   Antes de renombrar, confirmar con la cabeza real del repo. Agrega dos columnas: `payroll_positions.contract_labour` y `payroll_concept_entries.c6031_contract_labour`.
+2. **`backend/app/seed_data/mapping_pl.json` es de cada hotel.** No se copia el de CWL. Al commit #9 le va a dar conflicto en ese archivo, o lo trae con las reglas de CWL. Hay que quedarse con el JSON **del hotel** y aplicarle la misma transformación: por cada fila con `account_code == "6000"` agregar justo debajo una copia con `account_code: "6031"`, `account_name_example: "Contract Labour"` y la nota. Se saltea donde ya exista una 6031 para el mismo `report_id + dept_code + source_origin`. Cada hotel ya trae una 6031 (Tours). Se escribe con `json.dumps(indent=2, ensure_ascii=False)` y el salto de línea final, para que el diff sean solo las filas nuevas. Es la regla del seed: el JSON manda sobre `account_mapping`.
+3. **`CUENTA_ALIAS = {"6031": "6000"}`** en `pl_engine.construir_resolvedor`. Es la red de seguridad: sin ella, toda la 6031 de todos los deptos cae por FALLBACK en Tours.
+4. **Pruebas que contaban 17 cuentas de planilla.** Ahora son 18 (17 + 6031). El commit #9 las ajusta en CWL, y en cada hotel puede haber alguna propia que también cuente 17. `test_budget_traceability` lee el **Excel histórico** de mapeo, que no tiene la 6031: el commit le agrega la excepción por alias.
+5. **Las ~12 listas de conceptos** donde vive la 6031:
+   - `PAYROLL_ALL_COLS` (recalculate, allocation_api, rooms_sets_api)
+   - `consulta_api.CONCEPTOS`
+   - `payroll_position_report_api`
+   - `conceptos_por_depto_excel.FILAS`
+   - `informes/extraccion`
+   - `scenarios_api._PAYROLL_NAMES`
+   - `payroll_calculator`
+   - el salario del club en `pl_detail_api`
+   - `gl_detail_importer` (la 6031 va a `c6031_contract_labour`)
+   - `CONCEPTS` del front
+
+   Si el hotel tiene alguna lista propia que CWL no tiene, agregarle la 6031 al lado de la 6000.
+6. **Integrity:** cada hotel tiene que crear la cuenta 6031 Contract Labour para que los reales caigan ahí.
+
+**Verificación:**
+- `/health` con `alembic` en la revisión nueva.
+- Contar las reglas 6031 en `account_mapping` de producción: tiene que dar una por cada 6000 (~25).
+- Buscar en el bundle de `/payroll/checkbook` el literal `editPositionHelp`.
+
+---
+
+## 6. Port a Gardens (OJO), 2026-11-22
+
+**Primera tanda (#1–#8).**
+- Conflictos solo en el #3: `payroll_api.py` (import de `conceptos_por_depto_excel`) y
+  `page.tsx` (botón «↓ Conceptos x depto»), los dos propios de Gardens. Se conservaron y
+  se agregó lo nuevo.
+- Migración **`155_categoria_de_la_posicion.py`** (`revision 155`, `down_revision 154`).
+- `DEFECTO_POR_DEPTO` igual que en CWL.
+
+**Segunda tanda (#9–#10).**
+- Migración **`156_contract_labour.py`** (`revision 156`, `down_revision 155`).
+- `mapping_pl.json`: el de Gardens, más una fila 6031 debajo de cada 6000. Hay 26 filas 6000;
+  la de Tours (0150) ya tenía su 6031, así que se agregaron **25**. El diff tiene solo
+  inserciones.
+- `pl_engine.py`: solo se tomó `CUENTA_ALIAS`. `consolidate_dept_raiz` es de CWL y no se trajo.
+- `informes/extraccion.py` y `tests/test_payroll_por_cuenta.py` no existen en Gardens: siguen sin existir.
+- `conceptos_por_depto_excel.FILAS`: la 6031 va **al final, antes del TOTAL**, y no debajo de
+  la 6000 como en CWL. La prueba propia de Gardens
+  `test_base_va_despues_de_sus_componentes_y_total_al_final` exige que arriba de BASE estén
+  solo sus 7 componentes.
+- Listas con 6030 sin 6031 que quedan así a propósito: `beneficios_excel`,
+  `benefit_allocation_config` (solo beneficios) y el desglose de `cashflow_directo_api`
+  (igual que en CWL).
+
+**Pruebas.** `test_planilla_categoria.py` + `test_contract_labour.py` +
+`test_seed_manda_sobre_mapeo.py` dan 55/55; necesitan `aiosqlite`, y sin él varias se saltan.
+Suite completa: 4936 passed en `origin/main` y 4971 en la rama, 0 fallas.
+`npx tsc --noEmit -p .` limpio.
