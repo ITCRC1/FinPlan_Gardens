@@ -209,6 +209,10 @@ NO_REGISTRAN = {
     # ningun numero entra a un escenario ni al P&L; y volver a subir el mismo
     # mes es justo lo que se quiere (lo reemplaza), asi que el anti-reimport
     # del registro estorbaria. Port de CWL.
+    # Mis libros guarda el Excel del owner TAL CUAL para bajarlo después: no
+    # entra ningún número a ningún escenario. Y el registro frenaría con 409 subir
+    # el mismo archivo otra vez, que acá es legítimo (volver a colgarlo).
+    "libros_colgados_api.py:subir_libro",
     "auditoria_gl_api.py:revisar",
     "auditoria_gl_api.py:excel",
     "auditoria_gl_api.py:_revisar",

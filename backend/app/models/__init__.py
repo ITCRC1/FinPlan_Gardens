@@ -144,3 +144,4 @@ from app.models.guillermo import (
     GuillermoConfig, GuillermoHeartbeat, ExpectedReport, ImportException)
 # El mayor guardado (auditoría del mayor, clase 9 real). No entra a ningún total.
 from app.models.mayor_movimiento import MayorMovimiento, MayorMovimientoPrevio
+from app.models.libro_colgado import LibroColgado  # noqa: F401
